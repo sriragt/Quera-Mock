@@ -30,10 +30,10 @@ app = Flask(__name__, template_folder=tmpl_dir)
 #     DATABASEURI = "postgresql://zy2431:123123@34.73.36.248/project1"
 #
 # Modify these with your own credentials you received from TA!
-DATABASE_USERNAME = ""
-DATABASE_PASSWRD = ""
-DATABASE_HOST = "34.148.107.47" # change to 34.28.53.86 if you used database 2 for part 2
-DATABASEURI = f"postgresql://{DATABASE_USERNAME}:{DATABASE_PASSWRD}@{DATABASE_HOST}/project1"
+DATABASE_USERNAME = "sst2161"
+DATABASE_PASSWRD = "sst2161"
+DATABASE_HOST = "35.212.75.104" # change to 34.28.53.86 if you used database 2 for part 2
+DATABASEURI = f"postgresql://{DATABASE_USERNAME}:{DATABASE_PASSWRD}@{DATABASE_HOST}/proj1part2"
 
 
 #
@@ -169,23 +169,57 @@ def index():
 # Notice that the function name is another() rather than index()
 # The functions for each app.route need to have different names
 #
-@app.route('/another')
-def another():
-	return render_template("another.html")
+# @app.route('/another')
+# def another():
+# 	return render_template("another.html")
 
 
 # Example of adding new data to the database
 @app.route('/add', methods=['POST'])
 def add():
-	# accessing form inputs from user
 	name = request.form['name']
 	
-	# passing params in for each variable into query
 	params = {}
 	params["new_name"] = name
 	g.conn.execute(text('INSERT INTO test(name) VALUES (:new_name)'), params)
 	g.conn.commit()
 	return redirect('/')
+
+@app.route('/user')
+def user():
+    return render_template("user.html")
+
+@app.route('/post')
+def post():
+    return render_template("post.html")
+
+@app.route('/search')
+def search():
+    return render_template("search.html")
+
+@app.route('/search_results', methods=['GET'])
+def search_results():
+    search_words = request.args.get('q', '').split()
+    results = []
+
+    with engine.connect() as conn:
+        conditions = []
+        for word in search_words:
+            conditions.append(f"to_tsvector('english', question_title) @@ to_tsquery('{word}') or to_tsvector('english', questions.description) @@ to_tsquery('{word}')")
+        where_clause = " OR ".join(conditions)
+        
+        query = text(f"""
+            SELECT questions.*, users.first_name, users.last_name
+            FROM questions
+            JOIN users ON questions.user_id = users.user_id
+            WHERE {where_clause}
+        """)
+        
+        result = conn.execute(query, {"word": word for word in search_words})
+        for row in result.fetchall():
+            results.append(row)
+
+    return render_template("search.html", search_results=results, search_words=search_words)
 
 
 @app.route('/login')

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search</title>
+</head>
+<body>
+    <h1>Search</h1>
+    
+    <form action="/search_results" method="GET">
+        <label for="searchQuery">Enter your search query:</label><br>
+        <input type="text" id="searchQuery" name="q" placeholder="Type your search here"><br><br>
+        <button type="submit">Search</button>
+    </form>
+
+    <div id="searchResults">
+        <ul>
+            {% for result in search_results %}
+                <li>Question: 
+                    {% set title_words = result.question_title.split() %}
+                    {% for word in title_words %}
+                        {% if word.lower() in search_words %}
+                            <b><u>{{ word }}</u></b>
+                        {% else %}
+                            {{ word }}
+                        {% endif %}
+                        {% if not loop.last %} {% endif %}
+                    {% endfor %}
+                    <ul>
+                        <li>Author: {{ result.first_name }} {{ result.last_name }}</li>
+                        <li>Date: {{ result.date_posted }}</li>
+                        <li>Description: 
+                            {% set desc_words = result.description.split() %}
+                            {% for word in desc_words %}
+                                {% if word.lower() in search_words %}
+                                    <b><u>{{ word }}</b></u>
+                                {% else %}
+                                    {{ word }}
+                                {% endif %}
+                                {% if not loop.last %} {% endif %}
+                            {% endfor %}
+                        </li>
+                    </ul>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>
