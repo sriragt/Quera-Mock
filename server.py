@@ -193,20 +193,23 @@ def user():
 def post():
     return render_template("post.html")
 
-@app.route('/search')
-def search():
-    return render_template("search.html")
+# @app.route('/search')
+# def search():
+#     return render_template("search.html")
 
-@app.route('/search_results', methods=['GET'])
-def search_results():
+@app.route('/search', methods=['GET'])
+def search():
     search_words = request.args.get('q', '').split()
     results = {}
 
     with engine.connect() as conn:
         conditions = []
+        if len(search_words) == 0:
+            print(type(search_words))
+            return render_template("search.html", search_results=results, search_words=search_words)
         for word in search_words:
             conditions.append(f"to_tsvector('english', q.question_title) @@ to_tsquery('{word}') or to_tsvector('english', q.description) @@ to_tsquery('{word}')")
-        where_clause = " OR ".join(conditions)
+        where_clause = "WHERE " + " OR ".join(conditions)
         
         query = text(f"""
             SELECT q.question_id, q.question_title, q.description AS question_description, u1.first_name AS question_first_name, u1.last_name AS question_last_name, q.date_posted AS question_date_posted, 
@@ -220,7 +223,8 @@ def search_results():
             JOIN reply_to rt ON a.answer_id = rt.answer_id
             JOIN replies r ON rt.reply_id = r.reply_id
             JOIN users u3 ON r.replied_by = u3.user_id
-            WHERE {where_clause};
+            {where_clause}
+            ORDER BY q.date_posted DESC, a.date_posted DESC, r.date_posted DESC;
         """)
         
         result = conn.execute(query, {"word": word for word in search_words})
