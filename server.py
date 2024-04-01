@@ -200,24 +200,43 @@ def search():
 @app.route('/search_results', methods=['GET'])
 def search_results():
     search_words = request.args.get('q', '').split()
-    results = []
+    results = {}
 
     with engine.connect() as conn:
         conditions = []
         for word in search_words:
-            conditions.append(f"to_tsvector('english', question_title) @@ to_tsquery('{word}') or to_tsvector('english', questions.description) @@ to_tsquery('{word}')")
+            conditions.append(f"to_tsvector('english', q.question_title) @@ to_tsquery('{word}') or to_tsvector('english', q.description) @@ to_tsquery('{word}')")
         where_clause = " OR ".join(conditions)
         
         query = text(f"""
-            SELECT questions.*, users.first_name, users.last_name
-            FROM questions
-            JOIN users ON questions.user_id = users.user_id
-            WHERE {where_clause}
+            SELECT q.question_id, q.question_title, q.description AS question_description, u1.first_name AS question_first_name, u1.last_name AS question_last_name, q.date_posted AS question_date_posted, 
+                   a.description AS answer_description, u2.first_name AS answer_first_name, u2.last_name AS answer_last_name, a.date_posted AS answer_date_posted
+            FROM questions q 
+            JOIN answer_to at ON q.question_id = at.question_id
+            JOIN answers a ON at.answer_id = a.answer_id
+            JOIN users u1 ON q.user_id = u1.user_id
+            JOIN users u2 ON a.answered_by = u2.user_id
+            WHERE {where_clause};
         """)
         
         result = conn.execute(query, {"word": word for word in search_words})
         for row in result.fetchall():
-            results.append(row)
+            question_id = row[0]
+            if question_id not in results:
+                results[question_id] = {
+                    'question_title': row[1],
+					'question_description': row[2],
+                    'question_first_name': row[3],
+                    'question_last_name': row[4],
+                    'question_date_posted': row[5],
+                    'answers': []
+                }
+            results[question_id]['answers'].append({
+                'answer_description': row[6],
+                'answer_first_name': row[7],
+                'answer_last_name': row[8],
+                'answer_date_posted': row[9]
+            })
 
     return render_template("search.html", search_results=results, search_words=search_words)
 
