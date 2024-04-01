@@ -168,34 +168,60 @@ def index():
 #
 # Notice that the function name is another() rather than index()
 # The functions for each app.route need to have different names
-#
-# @app.route('/another')
-# def another():
-# 	return render_template("another.html")
 
-
-# Example of adding new data to the database
-@app.route('/add', methods=['POST'])
-def add():
-	name = request.form['name']
-	
-	params = {}
-	params["new_name"] = name
-	g.conn.execute(text('INSERT INTO test(name) VALUES (:new_name)'), params)
-	g.conn.commit()
-	return redirect('/')
-
-@app.route('/user')
+@app.route('/user', methods=['GET', 'POST'])
 def user():
-    return render_template("user.html")
+    if request.method == 'POST':
+        return add_user()
+    else:
+        return render_template("user.html")
 
-@app.route('/post')
+def add_user():
+    first_name = request.form['first_name']
+    last_name = request.form['last_name']
+    email = request.form['email']
+    curr_employment = request.form.get('curr_employment', None)
+    description = request.form.get('description', None)
+    date_of_birth = request.form['date_of_birth']
+    city = request.form.get('city', None)
+    ZIP = request.form.get('ZIP', None)
+    country = request.form.get('country', None)
+
+    insert_query = """
+        INSERT INTO user_information (first_name, last_name, email, curr_employment, description, date_of_birth, city, ZIP, country)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """
+    with engine.connect() as conn:
+        conn.execute(insert_query, (first_name, last_name, email, curr_employment, description, date_of_birth, city, ZIP, country))
+        conn.commit()
+
+    return redirect('/')
+
+@app.route('/post', methods=['GET', 'POST'])
 def post():
-    return render_template("post.html")
+    if request.method == 'POST':
+        return add_post()
+    else:
+        return render_template("post.html")
 
-# @app.route('/search')
-# def search():
-#     return render_template("search.html")
+def add_post():
+    question_title = request.form['question_title']
+    description = request.form['description']
+    media = request.form.get('media', None)
+    privacy = request.form['privacy']
+    
+    user_id = 'user_id_here'
+    date_posted = 'current_date_here'
+    
+    insert_query = """
+        INSERT INTO questions (question_title, description, media, date_posted, privacy, user_id)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """
+    with engine.connect() as conn:
+        conn.execute(insert_query, (question_title, description, media, date_posted, privacy, user_id))
+        conn.commit()
+
+    return redirect('/')
 
 @app.route('/search', methods=['GET'])
 def search():
