@@ -186,16 +186,25 @@ def add_user():
     city = request.form.get('city', None)
     ZIP = request.form.get('ZIP', None)
     country = request.form.get('country', None)
-
-    insert_query = """
-        INSERT INTO user_information (first_name, last_name, email, curr_employment, description, date_of_birth, city, ZIP, country)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """
+    
+    max_id_query = text("""SELECT MAX(CAST(SUBSTRING(user_id, 1, 4) AS INT)) FROM users;""")
     with engine.connect() as conn:
-        conn.execute(insert_query, (first_name, last_name, email, curr_employment, description, date_of_birth, city, ZIP, country))
+        result = conn.execute(max_id_query)
+        max_id = result.fetchone()[0]
+        if max_id is None:
+            max_id = 1
+        new_id = str(max_id + 1).zfill(4)
+        user_id = f'{new_id:04}'
+
+        insert_query = text(f"""
+            INSERT INTO users (user_id, first_name, last_name, email_address, curr_employment, description, date_joined, date_of_birth, city, ZIP, country)
+            VALUES ('{user_id}', '{first_name}', '{last_name}', '{email}', '{curr_employment}', '{description}', CURRENT_DATE, '{date_of_birth}', '{city}', '{ZIP}', '{country}');
+        """)
+        conn.execute(insert_query)
         conn.commit()
 
-    return redirect('/')
+    return redirect('/user')
+
 
 @app.route('/post', methods=['GET', 'POST'])
 def post():
