@@ -42,12 +42,24 @@
                 
                 <h3>Answers:</h3>
                 <ul>
-                    {% for answer in question_data.answers %}
+                    {% for answer_id, answer in question_data.answers.items() %}
                         <li>
                             {{ answer.answer_description }}
                             <ul>
                                 <li><i>User: {{ answer.answer_first_name }} {{ answer.answer_last_name }}</i></li>
                                 <li><i>Date Posted: {{ answer.answer_date_posted }}</i></li>
+                                <h4>Replies:</h4>
+                                <ul>
+                                    {% for reply in answer.replies %}
+                                        <li>
+                                            {{ reply.reply_description }}
+                                            <ul>
+                                                <li><i>User: {{ reply.reply_first_name }} {{ reply.reply_last_name }}</i></li>
+                                                <li><i>Date Posted: {{ reply.reply_date_posted }}</i></li>
+                                            </ul>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
                             </ul>
                         </li>
                     {% endfor %}

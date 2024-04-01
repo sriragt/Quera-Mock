@@ -210,35 +210,49 @@ def search_results():
         
         query = text(f"""
             SELECT q.question_id, q.question_title, q.description AS question_description, u1.first_name AS question_first_name, u1.last_name AS question_last_name, q.date_posted AS question_date_posted, 
-                   a.description AS answer_description, u2.first_name AS answer_first_name, u2.last_name AS answer_last_name, a.date_posted AS answer_date_posted
+                   a.answer_id, a.description AS answer_description, u2.first_name AS answer_first_name, u2.last_name AS answer_last_name, a.date_posted AS answer_date_posted, 
+                   r.description AS reply_description, u3.first_name AS reply_first_name, u3.last_name AS reply_last_name, r.date_posted AS reply_date_posted
             FROM questions q 
             JOIN answer_to at ON q.question_id = at.question_id
             JOIN answers a ON at.answer_id = a.answer_id
             JOIN users u1 ON q.user_id = u1.user_id
             JOIN users u2 ON a.answered_by = u2.user_id
+            JOIN reply_to rt ON a.answer_id = rt.answer_id
+            JOIN replies r ON rt.reply_id = r.reply_id
+            JOIN users u3 ON r.replied_by = u3.user_id
             WHERE {where_clause};
         """)
         
         result = conn.execute(query, {"word": word for word in search_words})
         for row in result.fetchall():
             question_id = row[0]
+            answer_id = row[6]
             if question_id not in results:
                 results[question_id] = {
                     'question_title': row[1],
-					'question_description': row[2],
+                    'question_description': row[2],
                     'question_first_name': row[3],
                     'question_last_name': row[4],
                     'question_date_posted': row[5],
-                    'answers': []
+                    'answers': {}
                 }
-            results[question_id]['answers'].append({
-                'answer_description': row[6],
-                'answer_first_name': row[7],
-                'answer_last_name': row[8],
-                'answer_date_posted': row[9]
+            if answer_id not in results[question_id]['answers']:
+                results[question_id]['answers'][answer_id] = {
+                    'answer_description': row[7],
+                    'answer_first_name': row[8],
+                    'answer_last_name': row[9],
+                    'answer_date_posted': row[10],
+                    'replies': []
+                }
+            results[question_id]['answers'][answer_id]['replies'].append({
+                'reply_description': row[11],
+                'reply_first_name': row[12],
+                'reply_last_name': row[13],
+                'reply_date_posted': row[14]
             })
 
     return render_template("search.html", search_results=results, search_words=search_words)
+
 
 
 @app.route('/login')
