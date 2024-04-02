@@ -6,27 +6,47 @@
     <title>Question Posting Form</title>
 </head>
 <body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <h3 style="color: red; font-style: italic;">{{ messages[0][1] }}</h3>
+        {% endif %}
+    {% endwith %}
+
     <h1>Post a Question</h1>
-    <form action="process_form.php" method="POST">
+    <form action="/post" method="POST">
         <label for="email">Email Address:</label><br>
         <input type="email" id="email" name="email" required><br><br>
 
         <label for="question">Question:</label><br>
-        <textarea id="question" name="question" rows="2" cols="50"></textarea><br><br>
+        <textarea id="question" name="question" rows="2" cols="50" required></textarea><br><br>
 
         <label for="description">Question Description:</label><br>
-        <textarea id="description" name="description" rows="4" cols="50"></textarea><br><br>
+        <textarea id="description" name="description" rows="4" cols="50" required></textarea><br><br>
 
         <label for="media">Media:</label><br>
         <textarea id="media" name="media"></textarea><br><br>
 
         <label for="privacy">Privacy:</label><br>
         <select id="privacy" name="privacy">
-            <option value="public">Public</option>
+            <option value="public" selected>Public</option>
             <option value="private">Private</option>
         </select><br><br>
 
+        <label for="topics">Topics <i>(can choose multiple using cmd-click or ctrl-click)</i>:</label><br>
+        <select id="topics" name="topics" multiple>
+            <option value="Science & Technology">Science & Technology</option>
+            <option value="Health & Wellness">Health & Wellness</option>
+            <option value="History">History</option>
+            <option value="Culture">Culture</option>
+            <option value="Arts">Arts</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Politics & News">Politics & News</option>
+            <option value="Education">Education</option>
+            <option value="Other">Other</option>
+        </select><br><br>
+
         <input type="submit" value="Submit">
+        <button onclick="window.location.href = './'">Return Home</button>
     </form>
 </body>
 </html>

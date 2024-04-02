@@ -189,7 +189,7 @@ def add_user():
     ZIP = request.form.get('ZIP', None)
     country = request.form.get('country', None)
     
-    max_id_query = text("""SELECT MAX(CAST(SUBSTRING(user_id, 1, 4) AS INT)) FROM users;""")
+    max_id_query = text("""SELECT MAX(CAST(user_id AS INT)) FROM users;""")
     with engine.connect() as conn:
         result = conn.execute(max_id_query)
         max_id = result.fetchone()[0]
@@ -198,11 +198,12 @@ def add_user():
         new_id = str(int(max_id) + 1).zfill(4)
         user_id = f'{new_id:04}'
 
-        insert_query = text(f"""
+        insert_query = text("""
             INSERT INTO users (user_id, first_name, last_name, email_address, curr_employment, description, date_joined, date_of_birth, city, ZIP, country)
-            VALUES ('{user_id}', '{first_name}', '{last_name}', '{email}', '{curr_employment}', '{description}', CURRENT_DATE, '{date_of_birth}', '{city}', '{ZIP}', '{country}');
+            VALUES (:user_id, :first_name, :last_name, :email, :curr_employment, :description, CURRENT_DATE, :date_of_birth, :city, :ZIP, :country);
         """)
-        conn.execute(insert_query)
+
+        conn.execute(insert_query, {'user_id': user_id, 'first_name': first_name, 'last_name': last_name, 'email': email, 'curr_employment': curr_employment, 'description': description, 'date_of_birth': date_of_birth, 'city': city, 'ZIP': ZIP, 'country': country})
         conn.commit()
 
     flash('You finished created your profile', 'success')
@@ -217,23 +218,51 @@ def post():
         return render_template("post.html")
 
 def add_post():
-    question_title = request.form['question_title']
+    email = request.form['email']
+    question_title = request.form['question']
     description = request.form['description']
     media = request.form.get('media', None)
     privacy = request.form['privacy']
+    topics = request.form.getlist('topics')
     
-    user_id = 'user_id_here'
-    date_posted = 'current_date_here'
-    
-    insert_query = """
-        INSERT INTO questions (question_title, description, media, date_posted, privacy, user_id)
-        VALUES (%s, %s, %s, %s, %s, %s)
-    """
+    max_id_query = text("""SELECT MAX(CAST(SUBSTRING(question_id, 2) AS INT)) FROM questions;""")
     with engine.connect() as conn:
-        conn.execute(insert_query, (question_title, description, media, date_posted, privacy, user_id))
+        result = conn.execute(max_id_query)
+        max_id = result.fetchone()[0]
+        if max_id is None:
+            max_id = 1
+        new_id = str(int(max_id) + 1).zfill(4)
+        question_id = f'q{new_id:04}'
+        
+        user_id_query = text("""
+			SELECT user_id 
+			FROM users 
+			WHERE email_address = :email
+		""")
+        user_id = conn.execute(user_id_query, {'email': email}).scalar()
+		
+        if user_id is None:
+            flash('Email does not exist in the database. Make an account to post a question.', 'error')
+            return redirect(request.referrer)
+        
+        insert_query = text("""
+            INSERT INTO questions (question_id, user_id, question_title, description, media, date_posted, privacy)
+            VALUES (:question_id, :user_id, :question_title, :description, :media, CURRENT_DATE, :privacy)
+        """)
+        
+        conn.execute(insert_query, {'question_id': question_id, 'user_id': user_id, 'question_title': question_title, 'description': description, 'media': media, 'privacy': privacy})
+        
+        insert_topic_query = text("""
+            INSERT INTO topics (question_id, topic, user_id)
+            VALUES (:question_id, :topic, :user_id)
+        """)
+        for topic in topics:
+            conn.execute(insert_topic_query, {'question_id': question_id, 'topic': topic, 'user_id': user_id})
+            
         conn.commit()
-
-    return redirect('/')
+    
+    flash('You created a new post', 'success')
+    return redirect('/post')
 
 @app.route('/search', methods=['GET'])
 def search():
@@ -314,16 +343,16 @@ def add_answer():
          return redirect(request.referrer)
     
     try:
-        with engine.begin() as connection:
+        with engine.begin() as conn:
             user_id_answerer_query = text("""
                 SELECT user_id 
                 FROM users 
                 WHERE email_address = :email
             """)
-            user_id_answerer = connection.execute(user_id_answerer_query, {'email': email}).scalar()
+            user_id_answerer = conn.execute(user_id_answerer_query, {'email': email}).scalar()
 
             if user_id_answerer is None:
-                flash('Email does not exist in the database', 'error')
+                flash('Email does not exist in the database. Make an account to post an answer.', 'error')
                 return redirect(request.referrer)
 
             user_id_questioner_query = text("""
@@ -331,25 +360,25 @@ def add_answer():
                 FROM questions 
                 WHERE question_id = :question_id
             """)
-            user_id_questioner = connection.execute(user_id_questioner_query, {'question_id': question_id}).scalar()
+            user_id_questioner = conn.execute(user_id_questioner_query, {'question_id': question_id}).scalar()
 
             max_answer_id_query = text("""
                 SELECT MAX(answer_id) FROM answers
             """)
-            max_answer_id = connection.execute(max_answer_id_query).scalar() or 0
+            max_answer_id = conn.execute(max_answer_id_query).scalar() or 0
             new_answer_id = str(int(max_answer_id) + 1).zfill(4)
 
             insert_answer_query = text("""
                 INSERT INTO answers (answer_id, answered_by, description, media, date_posted) 
                 VALUES (:new_answer_id, :user_id_answerer, :description, :media, CURRENT_DATE)
             """)
-            connection.execute(insert_answer_query, {'new_answer_id': new_answer_id, 'user_id_answerer': user_id_answerer, 'description': description, 'media': media})
+            conn.execute(insert_answer_query, {'new_answer_id': new_answer_id, 'user_id_answerer': user_id_answerer, 'description': description, 'media': media})
 
             insert_answer_to_query = text("""
                 INSERT INTO answer_to (answer_id, question_id, answered_to, answerer) 
                 VALUES (:new_answer_id, :question_id, :user_id_questioner, :user_id_answerer)
             """)
-            connection.execute(insert_answer_to_query, {'new_answer_id': new_answer_id, 'question_id': question_id, 'user_id_questioner': user_id_questioner, 'user_id_answerer': user_id_answerer})
+            conn.execute(insert_answer_to_query, {'new_answer_id': new_answer_id, 'question_id': question_id, 'user_id_questioner': user_id_questioner, 'user_id_answerer': user_id_answerer})
     
     except Exception as e:
         print("Error:", e)
@@ -371,16 +400,16 @@ def add_reply():
          return redirect(request.referrer)
     
     try:
-        with engine.begin() as connection:
+        with engine.begin() as conn:
             user_id_replier_query = text("""
                 SELECT user_id 
                 FROM users 
                 WHERE email_address = :email
             """)
-            user_id_replier = connection.execute(user_id_replier_query, {'email': email}).scalar()
+            user_id_replier = conn.execute(user_id_replier_query, {'email': email}).scalar()
             
             if user_id_replier is None:
-                flash('Email does not exist in the database', 'error')
+                flash('Email does not exist in the database. Make an account to post a reply.', 'error')
                 return redirect(request.referrer)
 
             user_id_answerer_query = text("""
@@ -388,23 +417,23 @@ def add_reply():
                 FROM answers 
                 WHERE answer_id = :answer_id
             """)
-            user_id_answerer = connection.execute(user_id_answerer_query, {'answer_id': answer_id}).scalar()
+            user_id_answerer = conn.execute(user_id_answerer_query, {'answer_id': answer_id}).scalar()
 
             max_reply_id_query = text("""SELECT MAX(reply_id) FROM replies;""")
-            max_reply_id = connection.execute(max_reply_id_query).scalar() or 0
+            max_reply_id = conn.execute(max_reply_id_query).scalar() or 0
             new_reply_id = str(int(max_reply_id) + 1).zfill(4)
 
             insert_reply_query = text("""
                 INSERT INTO replies (reply_id, replied_by, description, date_posted) 
                 VALUES (:new_reply_id, :user_id_replier, :description, CURRENT_DATE);
             """)
-            connection.execute(insert_reply_query, {'new_reply_id': new_reply_id, 'user_id_replier': user_id_replier, 'description': description})
+            conn.execute(insert_reply_query, {'new_reply_id': new_reply_id, 'user_id_replier': user_id_replier, 'description': description})
 
             insert_reply_to_query = text("""
                 INSERT INTO reply_to (reply_id, answer_id, replied_to, replier) 
                 VALUES (:new_reply_id, :answer_id, :user_id_answerer, :user_id_replier);
             """)
-            connection.execute(insert_reply_to_query, {'new_reply_id': new_reply_id, 'answer_id': answer_id, 'user_id_answerer': user_id_answerer, 'user_id_replier': user_id_replier})
+            conn.execute(insert_reply_to_query, {'new_reply_id': new_reply_id, 'answer_id': answer_id, 'user_id_answerer': user_id_answerer, 'user_id_replier': user_id_replier})
     
     except Exception as e:
         print("Error:", e)
@@ -422,16 +451,16 @@ def add_upvote():
          return redirect(request.referrer)
     
     try:
-        with engine.begin() as connection:
+        with engine.begin() as conn:
             user_id_voter_query = text("""
                 SELECT user_id 
                 FROM users 
                 WHERE email_address = :email
             """)
-            user_id_voter = connection.execute(user_id_voter_query, {'email': email}).scalar()
+            user_id_voter = conn.execute(user_id_voter_query, {'email': email}).scalar()
             
             if user_id_voter is None:
-                flash('Email does not exist in the database', 'error')
+                flash('Email does not exist in the database. Make an account to vote.', 'error')
                 return redirect(request.referrer)
             
             existing_vote_query = text("""
@@ -439,7 +468,7 @@ def add_upvote():
                 FROM votes 
                 WHERE user_id = :user_id_voter AND answer_id = :answer_id
             """)
-            existing_vote = connection.execute(existing_vote_query, {'user_id_voter': user_id_voter, 'answer_id': answer_id}).scalar()
+            existing_vote = conn.execute(existing_vote_query, {'user_id_voter': user_id_voter, 'answer_id': answer_id}).scalar()
             
             if existing_vote == -1:
                 flash('You have already downvoted this answer', 'error')
@@ -453,13 +482,13 @@ def add_upvote():
                 FROM answers 
                 WHERE answer_id = :answer_id
             """)
-            user_id_answerer = connection.execute(user_id_answerer_query, {'answer_id': answer_id}).scalar()
+            user_id_answerer = conn.execute(user_id_answerer_query, {'answer_id': answer_id}).scalar()
             
             insert_vote_query = text("""
                 INSERT INTO votes (user_id, answer_id, creator_id, vote) 
                 VALUES (:user_id_voter, :answer_id, :user_id_answerer, 1);
             """)
-            connection.execute(insert_vote_query, {'user_id_voter': user_id_voter, 'answer_id': answer_id, 'user_id_answerer': user_id_answerer})
+            conn.execute(insert_vote_query, {'user_id_voter': user_id_voter, 'answer_id': answer_id, 'user_id_answerer': user_id_answerer})
     
     except Exception as e:
         print("Error:", e)
@@ -477,16 +506,16 @@ def add_downvote():
          return redirect(request.referrer)
     
     try:
-        with engine.begin() as connection:
+        with engine.begin() as conn:
             user_id_voter_query = text("""
                 SELECT user_id 
                 FROM users 
                 WHERE email_address = :email
             """)
-            user_id_voter = connection.execute(user_id_voter_query, {'email': email}).scalar()
+            user_id_voter = conn.execute(user_id_voter_query, {'email': email}).scalar()
             
             if user_id_voter is None:
-                flash('Email does not exist in the database', 'error')
+                flash('Email does not exist in the database. Make an account to vote.', 'error')
                 return redirect(request.referrer)
             
             existing_vote_query = text("""
@@ -494,7 +523,7 @@ def add_downvote():
                 FROM votes 
                 WHERE user_id = :user_id_voter AND answer_id = :answer_id
             """)
-            existing_vote = connection.execute(existing_vote_query, {'user_id_voter': user_id_voter, 'answer_id': answer_id}).scalar()
+            existing_vote = conn.execute(existing_vote_query, {'user_id_voter': user_id_voter, 'answer_id': answer_id}).scalar()
             
             if existing_vote == -1:
                 flash('You have already downvoted this answer', 'error')
@@ -508,13 +537,13 @@ def add_downvote():
                 FROM answers 
                 WHERE answer_id = :answer_id
             """)
-            user_id_answerer = connection.execute(user_id_answerer_query, {'answer_id': answer_id}).scalar()
+            user_id_answerer = conn.execute(user_id_answerer_query, {'answer_id': answer_id}).scalar()
             
             insert_vote_query = text("""
                 INSERT INTO votes (user_id, answer_id, creator_id, vote) 
                 VALUES (:user_id_voter, :answer_id, :user_id_answerer, -1);
             """)
-            connection.execute(insert_vote_query, {'user_id_voter': user_id_voter, 'answer_id': answer_id, 'user_id_answerer': user_id_answerer})
+            conn.execute(insert_vote_query, {'user_id_voter': user_id_voter, 'answer_id': answer_id, 'user_id_answerer': user_id_answerer})
     
     except Exception as e:
         print("Error:", e)
@@ -536,16 +565,16 @@ def follow():
         flash('You did not input your email', 'error')
         return redirect(request.referrer)
     try:
-        with engine.begin() as connection:
+        with engine.begin() as conn:
             follower_id_query = text("""
                 SELECT user_id 
                 FROM users 
                 WHERE email_address = :email
             """)
-            follower_id = connection.execute(follower_id_query, {'email': email}).scalar()
+            follower_id = conn.execute(follower_id_query, {'email': email}).scalar()
 
             if follower_id is None:
-                flash('Email does not exist in the database', 'error')
+                flash('Email does not exist in the database. Make an account to follow other users.', 'error')
                 return redirect(request.referrer)
 
             if not followee_id:
@@ -555,21 +584,21 @@ def follow():
 						FROM questions 
 						WHERE question_id = :question_id
 					""")
-                    followee_id = connection.execute(followee_id_query, {'question_id': question_id}).scalar()
+                    followee_id = conn.execute(followee_id_query, {'question_id': question_id}).scalar()
                 elif answer_id:
                     followee_id_query = text("""
 						SELECT user_id 
 						FROM answers 
 						WHERE answer_id = :answer_id
 					""")
-                    followee_id = connection.execute(followee_id_query, {'answer_id': answer_id}).scalar()
+                    followee_id = conn.execute(followee_id_query, {'answer_id': answer_id}).scalar()
                 else:
                     followee_id_query = text("""
 						SELECT user_id 
 						FROM replies 
 						WHERE reply_id = :reply_id
 					""")
-                    followee_id = connection.execute(followee_id_query, {'reply_id': reply_id}).scalar()
+                    followee_id = conn.execute(followee_id_query, {'reply_id': reply_id}).scalar()
 
                 if followee_id is None:
                     flash('Post does not exist in the database', 'error')
@@ -584,7 +613,7 @@ def follow():
                 FROM follows 
                 WHERE follower_id = :follower_id AND followee_id = :followee_id
             """)
-            follow_exists = connection.execute(check_follow_query, {'follower_id': follower_id, 'followee_id': followee_id}).scalar()
+            follow_exists = conn.execute(check_follow_query, {'follower_id': follower_id, 'followee_id': followee_id}).scalar()
 
             if follow_exists:
                 flash('You are already following this user', 'error')
@@ -594,7 +623,7 @@ def follow():
                 INSERT INTO follows (follower_id, followee_id) 
                 VALUES (:follower_id, :followee_id);
             """)
-            connection.execute(insert_follow_query, {'follower_id': follower_id, 'followee_id': followee_id})
+            conn.execute(insert_follow_query, {'follower_id': follower_id, 'followee_id': followee_id})
 
             flash('You are now following this user', 'success')
             return redirect(request.referrer)
@@ -608,20 +637,20 @@ def followfollower():
     follower_email = request.form['follower_email']
     user_email = request.form['user_email']
     try:
-        with engine.begin() as connection:
+        with engine.begin() as conn:
             person_to_follow_query = text("""
                 SELECT user_id 
                 FROM users 
                 WHERE email_address = :follower_email
             """)
-            person_to_follow_id = connection.execute(person_to_follow_query, {'follower_email': follower_email}).scalar()
+            person_to_follow_id = conn.execute(person_to_follow_query, {'follower_email': follower_email}).scalar()
 
             user_id_query = text("""
                 SELECT user_id 
                 FROM users 
                 WHERE email_address = :user_email
             """)
-            user_id = connection.execute(user_id_query, {'user_email': user_email}).scalar()
+            user_id = conn.execute(user_id_query, {'user_email': user_email}).scalar()
             
             if person_to_follow_id is None or user_id is None:
                 flash('User to follow does not exist', 'error')
@@ -636,7 +665,7 @@ def followfollower():
                 FROM follows
                 WHERE follower_id = :user_id AND followee_id = :person_to_unfollow_id
             """)
-            follow_check_result = connection.execute(follow_check_query, {'user_id': user_id, 'person_to_unfollow_id': person_to_follow_id}).scalar()
+            follow_check_result = conn.execute(follow_check_query, {'user_id': user_id, 'person_to_unfollow_id': person_to_follow_id}).scalar()
             if follow_check_result:
                 flash('You are already following this person', 'error')
                 return redirect(request.referrer)
@@ -645,7 +674,7 @@ def followfollower():
                 INSERT INTO follows (follower_id, followee_id) 
                 VALUES (:follower_id, :followee_id);
             """)
-            connection.execute(insert_follow_query, {'follower_id': user_id, 'followee_id': person_to_follow_id})
+            conn.execute(insert_follow_query, {'follower_id': user_id, 'followee_id': person_to_follow_id})
     
     except Exception as e:
         print("Error:", e)
@@ -662,20 +691,20 @@ def unfollow():
     print(1, followee_email, user_email)
 
     try:
-        with engine.begin() as connection:
+        with engine.begin() as conn:
             person_to_unfollow_query = text("""
                 SELECT user_id 
                 FROM users 
                 WHERE email_address = :followee_email
             """)
-            person_to_unfollow_id = connection.execute(person_to_unfollow_query, {'followee_email': followee_email}).scalar()
+            person_to_unfollow_id = conn.execute(person_to_unfollow_query, {'followee_email': followee_email}).scalar()
 
             user_id_query = text("""
                 SELECT user_id 
                 FROM users 
                 WHERE email_address = :user_email
             """)
-            user_id = connection.execute(user_id_query, {'user_email': user_email}).scalar()
+            user_id = conn.execute(user_id_query, {'user_email': user_email}).scalar()
 
             if person_to_unfollow_id is None or user_id is None:
                 flash('User to unfollow does not exist', 'error')
@@ -686,7 +715,7 @@ def unfollow():
                 FROM follows
                 WHERE follower_id = :user_id AND followee_id = :person_to_unfollow_id
             """)
-            follow_check_result = connection.execute(follow_check_query, {'user_id': user_id, 'person_to_unfollow_id': person_to_unfollow_id}).scalar()
+            follow_check_result = conn.execute(follow_check_query, {'user_id': user_id, 'person_to_unfollow_id': person_to_unfollow_id}).scalar()
             if not follow_check_result:
                 flash('You are not following this person', 'error')
                 return redirect(request.referrer)
@@ -695,7 +724,7 @@ def unfollow():
                 DELETE FROM follows
                 WHERE follower_id = :user_id AND followee_id = :person_to_unfollow_id
             """)
-            connection.execute(unfollow_query, {'user_id': user_id, 'person_to_unfollow_id': person_to_unfollow_id})
+            conn.execute(unfollow_query, {'user_id': user_id, 'person_to_unfollow_id': person_to_unfollow_id})
     
     except Exception as e:
         print("Error:", e)
@@ -715,16 +744,16 @@ def friends():
         flash('You did not input your email', 'error')
         return redirect(request.referrer)
         
-    with engine.begin() as connection:
+    with engine.begin() as conn:
         user_id_query = text("""
             SELECT user_id 
             FROM users 
             WHERE email_address = :email
         """)
-        user_id = connection.execute(user_id_query, {'email': email}).scalar()
+        user_id = conn.execute(user_id_query, {'email': email}).scalar()
 
         if user_id is None:
-            flash('Email does not exist in the database', 'error')
+            flash('Email does not exist in the database. Make an account to follow other users.', 'error')
             return redirect(request.referrer)
 
         follower_query = text("""
@@ -733,7 +762,7 @@ def friends():
             JOIN follows f ON u.user_id = f.follower_id
             WHERE f.followee_id = :user_id
         """)
-        followers = connection.execute(follower_query, {'user_id': user_id}).fetchall()
+        followers = conn.execute(follower_query, {'user_id': user_id}).fetchall()
 
         following_query = text("""
             SELECT u.first_name, COALESCE(u.last_name, '') AS last_name, u.email_address
@@ -741,7 +770,7 @@ def friends():
             JOIN follows f ON u.user_id = f.followee_id
             WHERE f.follower_id = :user_id
         """)
-        following = connection.execute(following_query, {'user_id': user_id}).fetchall()
+        following = conn.execute(following_query, {'user_id': user_id}).fetchall()
 
     return render_template("friends.html", followers=followers, following=following, user_email=email)
 
@@ -755,13 +784,13 @@ def find_friends():
         flash('You did not input your email', 'error')
         return redirect(request.referrer)
 
-    with engine.begin() as connection:
+    with engine.begin() as conn:
         friends_query = text("""
             SELECT user_id, first_name, COALESCE(last_name, '') AS last_name
             FROM users
             WHERE email_address = :email
         """)
-        friends = connection.execute(friends_query, {'email': email}).fetchall()
+        friends = conn.execute(friends_query, {'email': email}).fetchall()
     return render_template("find_friends.html", friends=friends, user_email=email)
 
 if __name__ == "__main__":

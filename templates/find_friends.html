@@ -32,6 +32,7 @@
         <input type="text" id="email" name="email">
         <button type="submit">Find Friends</button>
     </form>
+    <br><button onclick="window.location.href = './'">Return Home</button>
     <div id="results">
         {% if friends %}
             <h3>Friends Found: {{ friends[0].first_name }} {{ friends[0].last_name }}</h3>
