@@ -204,6 +204,23 @@ def add_user():
         """)
 
         conn.execute(insert_query, {'user_id': user_id, 'first_name': first_name, 'last_name': last_name, 'email': email, 'curr_employment': curr_employment, 'description': description, 'date_of_birth': date_of_birth, 'city': city, 'ZIP': ZIP, 'country': country})
+        
+        education = request.form.getlist('education[]')
+        for edu in education:
+            insert_education_query = text("""
+                INSERT INTO users_education (user_id, education)
+                VALUES (:user_id, :education);
+            """)
+            conn.execute(insert_education_query, {'user_id': user_id, 'education': edu})
+            
+        credentials = request.form.getlist('credential[]')
+        for credential in credentials:
+            insert_credentials_query = text("""
+                INSERT INTO users_credentials (user_id, credentials)
+                VALUES (:user_id, :credential);
+            """)
+            conn.execute(insert_credentials_query, {'user_id': user_id, 'credential': credential})
+
         conn.commit()
 
     flash('You finished created your profile', 'success')
@@ -272,7 +289,6 @@ def search():
     with engine.connect() as conn:
         conditions = []
         if len(search_words) == 0:
-            print(type(search_words))
             return render_template("search.html", search_results=results, search_words=search_words)
         for word in search_words:
             conditions.append(f"to_tsvector('english', q.question_title) @@ to_tsquery('{word}') or to_tsvector('english', q.description) @@ to_tsquery('{word}')")
@@ -554,7 +570,6 @@ def add_downvote():
 
 @app.route('/follow', methods=['POST'])
 def follow():
-    print(1)
     email = request.form['email']
     question_id = request.form.get('question_id')
     answer_id = request.form.get('answer_id')
@@ -688,7 +703,6 @@ def followfollower():
 def unfollow():
     followee_email = request.form['followee_email']
     user_email = request.form['user_email']
-    print(1, followee_email, user_email)
 
     try:
         with engine.begin() as conn:
