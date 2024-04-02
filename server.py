@@ -12,10 +12,12 @@ import os
   # accessible as a variable in index.html:
 from sqlalchemy import *
 from sqlalchemy.pool import NullPool
-from flask import Flask, request, render_template, g, redirect, Response
+from flask import Flask, request, render_template, g, redirect, Response, flash
 
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
+app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
+
 
 
 #
@@ -303,22 +305,32 @@ def add_answer():
     description = request.form['description']
     media = request.form.get('media', None)
     question_id = request.form['question_id']
+    if email is None or email == '':
+         flash('You did not input your email', 'error')
+         return redirect(request.referrer)
+    if description is None or description == '':
+         flash('You did not write your answer', 'error')
+         return redirect(request.referrer)
     
     try:
         with engine.begin() as connection:
-            user_id_questioner_query = text("""
-                SELECT user_id 
-                FROM questions 
-                WHERE question_id = :question_id
-            """)
-            user_id_questioner = connection.execute(user_id_questioner_query, {'question_id': question_id}).scalar()
-
             user_id_answerer_query = text("""
                 SELECT user_id 
                 FROM users 
                 WHERE email_address = :email
             """)
             user_id_answerer = connection.execute(user_id_answerer_query, {'email': email}).scalar()
+
+            if user_id_answerer is None:
+                flash('Email does not exist in the database', 'error')
+                return redirect(request.referrer)
+
+            user_id_questioner_query = text("""
+                SELECT user_id 
+                FROM questions 
+                WHERE question_id = :question_id
+            """)
+            user_id_questioner = connection.execute(user_id_questioner_query, {'question_id': question_id}).scalar()
 
             max_answer_id_query = text("""
                 SELECT MAX(answer_id) FROM answers
@@ -349,22 +361,32 @@ def add_reply():
     email = request.form['email']
     description = request.form['description']
     answer_id = request.form['answer_id']
+    if email is None or email == '':
+         flash('You did not input your email', 'error')
+         return redirect(request.referrer)
+    if description is None or description == '':
+         flash('You did not write your reply', 'error')
+         return redirect(request.referrer)
     
     try:
         with engine.begin() as connection:
-            user_id_answerer_query = text("""
-                SELECT answered_by 
-                FROM answers 
-                WHERE answer_id = :answer_id
-            """)
-            user_id_answerer = connection.execute(user_id_answerer_query, {'answer_id': answer_id}).scalar()
-
             user_id_replier_query = text("""
                 SELECT user_id 
                 FROM users 
                 WHERE email_address = :email
             """)
             user_id_replier = connection.execute(user_id_replier_query, {'email': email}).scalar()
+            
+            if user_id_replier is None:
+                flash('Email does not exist in the database', 'error')
+                return redirect(request.referrer)
+
+            user_id_answerer_query = text("""
+                SELECT answered_by 
+                FROM answers 
+                WHERE answer_id = :answer_id
+            """)
+            user_id_answerer = connection.execute(user_id_answerer_query, {'answer_id': answer_id}).scalar()
 
             max_reply_id_query = text("""SELECT MAX(reply_id) FROM replies;""")
             max_reply_id = connection.execute(max_reply_id_query).scalar() or 0
