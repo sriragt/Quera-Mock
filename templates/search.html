@@ -57,7 +57,18 @@
                     {% endif %}
                     {% if not loop.last %} {% endif %}
                 {% endfor %}
-                <p><i>User: {{ question_data.question_first_name }} {{ question_data.question_last_name }}</i></p>
+                <p><i>User: {{ question_data.question_first_name }} {{ question_data.question_last_name }}    </i>
+                    <button onclick="showFollowForm('{{ question_id }}')">Follow</button>
+                    <div id="followForm{{ question_id }}" class="popup-form">
+                        <form action="/follow" method="POST">
+                            <input type="hidden" name="question_id" value="{{ question_id }}">
+                            <label for="followEmail">Email <i>(required)</i>: </label>
+                            <input type="email" id="followEmail" name="email"><br><br>
+                            <button type="submit">Follow</button>
+                            <button type="button" onclick="hideFollowForm('{{ question_id }}')">Exit</button>
+                        </form>
+                    </div>
+                </p>
                 <p><i>Date Posted: {{ question_data.question_date_posted }}</i></p>
                 
                 <button onclick="showAnswerForm('{{ question_id }}')">Answer</button>
@@ -81,7 +92,18 @@
                         <li>
                             {{ answer.answer_description }}
                             <ul>
-                                <li><i>User: {{ answer.answer_first_name }} {{ answer.answer_last_name }}</i></li>
+                                <li><i>User: {{ answer.answer_first_name }} {{ answer.answer_last_name }}    </i>
+                                    <button onclick="showFollowForm('{{ answer_id }}')">Follow</button>
+                                    <div id="followForm{{ answer_id }}" class="popup-form">
+                                        <form action="/follow" method="POST">
+                                            <input type="hidden" name="answer_id" value="{{ answer_id }}">
+                                            <label for="followEmail">Email <i>(required)</i>: </label>
+                                            <input type="email" id="followEmail" name="email"><br><br>
+                                            <button type="submit">Follow</button>
+                                            <button type="button" onclick="hideFollowForm('{{ answer_id }}')">Exit</button>
+                                        </form>
+                                    </div>
+                                </li>
                                 <li><i>Date Posted: {{ answer.answer_date_posted }}</i></li><br>
 
                                 <button onclick="showUpvoteForm('{{ answer_id }}')">Upvote</button>
@@ -125,7 +147,18 @@
                                         <li>
                                             {{ reply.reply_description }}
                                             <ul>
-                                                <li><i>User: {{ reply.reply_first_name }} {{ reply.reply_last_name }}</i></li>
+                                                <li><i>User: {{ reply.reply_first_name }} {{ reply.reply_last_name }}</i>
+                                                    <button onclick="showFollowForm('{{ reply.reply_id }}')">Follow</button>
+                                                    <div id="followForm{{ reply.reply_id }}" class="popup-form">
+                                                        <form action="/follow" method="POST">
+                                                            <input type="hidden" name="reply_id" value="{{ reply.reply_id }}">
+                                                            <label for="followEmail">Email <i>(required)</i>: </label>
+                                                            <input type="email" id="followEmail" name="email"><br><br>
+                                                            <button type="submit">Follow</button>
+                                                            <button type="button" onclick="hideFollowForm('{{ reply.reply_id }}')">Exit</button>
+                                                        </form>
+                                                    </div>
+                                                </li>
                                                 <li><i>Date Posted: {{ reply.reply_date_posted }}</i></li><br>
                                             </ul>
                                         </li>
@@ -164,7 +197,12 @@
         function hideReplyForm(answerId) {
             document.getElementById("replyForm" + answerId).style.display = "none";
         }
-
+        function showFollowForm(id) {
+            document.getElementById("followForm" + id).style.display = "block";
+        }
+        function hideFollowForm(id) {
+            document.getElementById("followForm" + id).style.display = "none";
+        }
     </script>
 </body>
 </html>
