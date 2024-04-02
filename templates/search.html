@@ -4,6 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search</title>
+    <style>
+        /* Style for popup form */
+        .popup-form {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 40px;
+            border: 1px solid #ccc;
+            width: 40%;
+            z-index: 1000;
+        }
+    </style>
 </head>
 <body>
     <h1>Search Quera</h1>
@@ -40,6 +55,24 @@
                 <p><i>User: {{ question_data.question_first_name }} {{ question_data.question_last_name }}</i></p>
                 <p><i>Date Posted: {{ question_data.question_date_posted }}</i></p>
                 
+                <!-- Answer Button -->
+                <button onclick="showAnswerForm()">Answer</button>
+
+                <!-- Answer Form -->
+                <div id="answerForm" class="popup-form">
+                    <form action="/answer" method="POST">
+                        <input type="hidden" name="question_id" value="{{ question_id }}">
+                        <label for="answerEmail">Email: </label>
+                        <input type="email" id="answerEmail" name="email"><br><br>
+                        <label for="answerDescription">Description:</label><br>
+                        <textarea id="answerDescription" name="description" rows="4" cols="50"></textarea><br><br>
+                        <label for="media">Media: </label>
+                        <input type="text" id="media" name="media"><br><br>
+                        <button type="submit">Submit</button>
+                        <button type="button" onclick="hideAnswerForm()">Exit</button>
+                    </form>
+                </div>
+
                 <h3>Answers:</h3>
                 <ul>
                     {% for answer_id, answer in question_data.answers.items() %}
@@ -47,7 +80,26 @@
                             {{ answer.answer_description }}
                             <ul>
                                 <li><i>User: {{ answer.answer_first_name }} {{ answer.answer_last_name }}</i></li>
-                                <li><i>Date Posted: {{ answer.answer_date_posted }}</i></li>
+                                <li><i>Date Posted: {{ answer.answer_date_posted }}</i></li><br>
+                                <!-- Reply Button -->
+                                <button onclick="showReplyForm()">Reply</button>
+
+                                <!-- Reply Form -->
+                                <div id="replyForm" class="popup-form">
+                                    <form action="/reply" method="POST">
+                                        <input type="hidden" name="question_id" value="{{ question_id }}">
+                                        <input type="hidden" name="answer_id" value="{{ answer_id }}">
+                                        <label for="replyEmail">Email: </label>
+                                        <input type="email" id="replyEmail" name="email"><br><br>
+                                        <label for="replyDescription">Description:</label><br>
+                                        <textarea id="replyDescription" name="description" rows="4" cols="50"></textarea><br><br>
+                                        <label for="media">Media: </label>
+                                        <input type="text" id="media" name="media"><br><br>
+                                        <button type="submit">Submit</button>
+                                        <button type="button" onclick="hideReplyForm()">Exit</button>
+                                    </form>
+                                </div>
+                                
                                 <h4>Replies:</h4>
                                 <ul>
                                     {% for reply in answer.replies %}
@@ -67,5 +119,27 @@
             {% endfor %}
         </ul>
     </div>
+
+    <script>
+        // Function to show answer form
+        function showAnswerForm() {
+            document.getElementById("answerForm").style.display = "block";
+        }
+
+        // Function to hide answer form
+        function hideAnswerForm() {
+            document.getElementById("answerForm").style.display = "none";
+        }
+
+        // Function to show reply form
+        function showReplyForm() {
+            document.getElementById("replyForm").style.display = "block";
+        }
+
+        // Function to hide reply form
+        function hideReplyForm() {
+            document.getElementById("replyForm").style.display = "none";
+        }
+    </script>
 </body>
 </html>

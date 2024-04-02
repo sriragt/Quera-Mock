@@ -193,7 +193,7 @@ def add_user():
         max_id = result.fetchone()[0]
         if max_id is None:
             max_id = 1
-        new_id = str(max_id + 1).zfill(4)
+        new_id = str(int(max_id) + 1).zfill(4)
         user_id = f'{new_id:04}'
 
         insert_query = text(f"""
@@ -289,10 +289,81 @@ def search():
                 'reply_last_name': row[13],
                 'reply_date_posted': row[14]
             })
-
+    
     return render_template("search.html", search_results=results, search_words=search_words)
 
+@app.route('/answer', methods=['POST'])
+def add_answer():
+    email = request.form['email']
+    description = request.form['description']
+    media = request.form.get('media', None)
+    question_id = request.form['question_id']
+    
+    try:
+        with engine.begin() as connection:
+            user_id_questioner_query = text(f"""
+                SELECT user_id 
+                FROM questions 
+                WHERE question_id = '{question_id}';
+            """)
+            user_id_questioner = connection.execute(user_id_questioner_query).scalar()
 
+            user_id_answerer_query = text(f"""
+                SELECT user_id 
+                FROM users 
+                WHERE email_address = '{email}';
+            """)
+            user_id_answerer = connection.execute(user_id_answerer_query).scalar()
+
+            max_answer_id_query = text("""SELECT MAX(answer_id) FROM answers;""")
+            max_answer_id = connection.execute(max_answer_id_query).scalar() or 0
+            new_answer_id = str(int(max_answer_id) + 1).zfill(4)
+
+            insert_answer_query = text(f"""
+                INSERT INTO answers (answer_id, answered_by, description, media, date_posted) 
+                VALUES ('{new_answer_id}', '{user_id_answerer}', '{description}', '{media}', CURRENT_DATE);
+            """)
+            connection.execute(insert_answer_query)
+
+            insert_answer_to_query = text(f"""
+                INSERT INTO answer_to (answer_id, question_id, answered_to, answerer) 
+                VALUES ('{new_answer_id}', '{question_id}', '{user_id_questioner}', '{user_id_answerer}');
+            """)
+            connection.execute(insert_answer_to_query)
+    
+    except Exception as e:
+        print("Error:", e)
+        return "Error: An unexpected error occurred", 500
+
+    return redirect('/')
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+@app.route('/reply', methods=['GET', 'POST'])
+def add_reply():
+    if request.method == 'POST':
+        return insert_reply()
+    else:
+        pass
+
+def insert_reply():
+    replied_by = request.form['replied_by']
+    description = request.form['description']
+    date_posted = 'current_date_here'
+    
+    question_id = request.form['question_id']
+    answer_id = request.form['answer_id']
+    
+    insert_query = """
+        INSERT INTO replies (question_id, answer_id, replied_by, description, date_posted)
+        VALUES (%s, %s, %s, %s, %s)
+    """
+    with engine.connect() as conn:
+        conn.execute(insert_query, (question_id, answer_id, replied_by, description, date_posted))
+        conn.commit()
+
+    return redirect('/')
 
 @app.route('/login')
 def login():
