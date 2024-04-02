@@ -20,14 +20,26 @@
     <h2>Followers:</h2>
     <ul>
         {% for follower in followers %}
-            <li>{{ follower.first_name }} {{ follower.last_name }}</li>
+            <li>{{ follower.first_name }} {{ follower.last_name }}
+                <form action="/followfollower" method="POST">
+                    <input type="hidden" name="user_email" value="{{ user_email }}">
+                    <input type="hidden" name="follower_email" value="{{ follower.email_address }}">
+                    <button type="submit">Follow</button>
+                </form>
+            </li>
         {% endfor %}
     </ul>
 
     <h2>Following:</h2>
     <ul>
         {% for person in following %}
-            <li>{{ person.first_name }} {{ person.last_name }}</li>
+            <li>{{ person.first_name }} {{ person.last_name }} 
+                <form action="/unfollow" method="POST">
+                    <input type="hidden" name="user_email" value="{{ user_email }}">
+                    <input type="hidden" name="followee_email" value="{{ person.email_address }}">
+                    <button type="submit">Unfollow</button>
+                </form>
+            </li>
         {% endfor %}
     </ul>
 </body>

@@ -598,6 +598,108 @@ def follow():
         flash('An error occurred while following the user', 'error')
         return redirect(request.referrer)
 
+@app.route('/followfollower', methods=['POST'])
+def followfollower():
+    print("Hello0")
+    follower_email = request.form['follower_email']
+    user_email = request.form['user_email']
+    print("Hello1")
+
+    try:
+        with engine.begin() as connection:
+            person_to_follow_query = text("""
+                SELECT user_id 
+                FROM users 
+                WHERE email_address = :follower_email
+            """)
+            person_to_follow_id = connection.execute(person_to_follow_query, {'follower_email': follower_email}).scalar()
+
+            user_id_query = text("""
+                SELECT user_id 
+                FROM users 
+                WHERE email_address = :user_email
+            """)
+            user_id = connection.execute(user_id_query, {'user_email': user_email}).scalar()
+            print("Hello2")
+            if person_to_follow_id is None or user_id is None:
+                flash('User to follow does not exist', 'error')
+                return redirect(request.referrer)
+            
+            follow_check_query = text("""
+                SELECT 1
+                FROM follows
+                WHERE follower_id = :user_id AND followee_id = :person_to_unfollow_id
+            """)
+            follow_check_result = connection.execute(follow_check_query, {'user_id': user_id, 'person_to_unfollow_id': person_to_follow_id}).scalar()
+            if follow_check_result:
+                flash('You are already following this person', 'error')
+                return redirect(request.referrer)
+
+            insert_follow_query = text("""
+                INSERT INTO follows (follower_id, followee_id) 
+                VALUES (:follower_id, :followee_id);
+            """)
+            connection.execute(insert_follow_query, {'follower_id': user_id, 'followee_id': person_to_follow_id})
+    
+    except Exception as e:
+        print("Error:", e)
+        flash('An error occurred while following the person', 'error')
+        return redirect(request.referrer)
+
+    flash('You have followed this person', 'success')
+    return redirect(request.referrer)
+
+@app.route('/unfollow', methods=['POST'])
+def unfollow():
+    followee_email = request.form['followee_email']
+    user_email = request.form['user_email']
+    print(1, followee_email, user_email)
+
+    try:
+        with engine.begin() as connection:
+            person_to_unfollow_query = text("""
+                SELECT user_id 
+                FROM users 
+                WHERE email_address = :followee_email
+            """)
+            person_to_unfollow_id = connection.execute(person_to_unfollow_query, {'followee_email': followee_email}).scalar()
+
+            user_id_query = text("""
+                SELECT user_id 
+                FROM users 
+                WHERE email_address = :user_email
+            """)
+            user_id = connection.execute(user_id_query, {'user_email': user_email}).scalar()
+
+            if person_to_unfollow_id is None or user_id is None:
+                flash('User to unfollow does not exist', 'error')
+                return redirect(request.referrer)
+            
+            # Check if the user is following the followee
+            follow_check_query = text("""
+                SELECT 1
+                FROM follows
+                WHERE follower_id = :user_id AND followee_id = :person_to_unfollow_id
+            """)
+            follow_check_result = connection.execute(follow_check_query, {'user_id': user_id, 'person_to_unfollow_id': person_to_unfollow_id}).scalar()
+            if not follow_check_result:
+                flash('You are not following this person', 'error')
+                return redirect(request.referrer)
+
+            unfollow_query = text("""
+                DELETE FROM follows
+                WHERE follower_id = :user_id AND followee_id = :person_to_unfollow_id
+            """)
+            connection.execute(unfollow_query, {'user_id': user_id, 'person_to_unfollow_id': person_to_unfollow_id})
+    
+    except Exception as e:
+        print("Error:", e)
+        flash('An error occurred while unfollowing the person', 'error')
+        return redirect(request.referrer)
+
+    flash('You have unfollowed this person', 'success')
+    return redirect(request.referrer)
+
 @app.route('/friends', methods=['GET'])
 def friends():
     email = request.args.get('email', '')
@@ -621,7 +723,7 @@ def friends():
             return redirect(request.referrer)
 
         follower_query = text("""
-            SELECT u.first_name, COALESCE(u.last_name, '') AS last_name
+            SELECT u.first_name, COALESCE(u.last_name, '') AS last_name, u.email_address
             FROM users u
             JOIN follows f ON u.user_id = f.follower_id
             WHERE f.followee_id = :user_id
@@ -629,14 +731,14 @@ def friends():
         followers = connection.execute(follower_query, {'user_id': user_id}).fetchall()
 
         following_query = text("""
-            SELECT u.first_name, COALESCE(u.last_name, '') AS last_name
+            SELECT u.first_name, COALESCE(u.last_name, '') AS last_name, u.email_address
             FROM users u
             JOIN follows f ON u.user_id = f.followee_id
             WHERE f.follower_id = :user_id
         """)
         following = connection.execute(following_query, {'user_id': user_id}).fetchall()
 
-    return render_template("friends.html", followers=followers, following=following)
+    return render_template("friends.html", followers=followers, following=following, user_email=email)
 
 if __name__ == "__main__":
 	import click
