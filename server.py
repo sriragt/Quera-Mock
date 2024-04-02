@@ -335,13 +335,12 @@ def add_answer():
         print("Error:", e)
         return "Error: An unexpected error occurred", 500
 
-    return redirect('/')
+    return redirect(request.referrer)
 
 @app.route('/reply', methods=['GET', 'POST'])
 def add_reply():
     email = request.form['email']
     description = request.form['description']
-    question_id = request.form['question_id']
     answer_id = request.form['answer_id']
     
     try:
@@ -380,13 +379,7 @@ def add_reply():
         print("Error:", e)
         return "Error: An unexpected error occurred", 500
 
-    return redirect('/')
-
-@app.route('/login')
-def login():
-	abort(401)
-	this_is_never_executed()
-
+    return redirect(request.referrer)
 
 if __name__ == "__main__":
 	import click
