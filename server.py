@@ -352,41 +352,42 @@ def add_reply():
     
     try:
         with engine.begin() as connection:
-            user_id_answerer_query = text(f"""
+            user_id_answerer_query = text("""
                 SELECT answered_by 
                 FROM answers 
-                WHERE answer_id = '{answer_id}';
+                WHERE answer_id = :answer_id
             """)
-            user_id_answerer = connection.execute(user_id_answerer_query).scalar()
+            user_id_answerer = connection.execute(user_id_answerer_query, {'answer_id': answer_id}).scalar()
 
-            user_id_replier_query = text(f"""
+            user_id_replier_query = text("""
                 SELECT user_id 
                 FROM users 
-                WHERE email_address = '{email}';
+                WHERE email_address = :email
             """)
-            user_id_replier = connection.execute(user_id_replier_query).scalar()
+            user_id_replier = connection.execute(user_id_replier_query, {'email': email}).scalar()
 
             max_reply_id_query = text("""SELECT MAX(reply_id) FROM replies;""")
             max_reply_id = connection.execute(max_reply_id_query).scalar() or 0
             new_reply_id = str(int(max_reply_id) + 1).zfill(4)
 
-            insert_reply_query = text(f"""
+            insert_reply_query = text("""
                 INSERT INTO replies (reply_id, replied_by, description, date_posted) 
-                VALUES ('{new_reply_id}', '{user_id_replier}', '{description}', CURRENT_DATE);
+                VALUES (:new_reply_id, :user_id_replier, :description, CURRENT_DATE);
             """)
-            connection.execute(insert_reply_query)
+            connection.execute(insert_reply_query, {'new_reply_id': new_reply_id, 'user_id_replier': user_id_replier, 'description': description})
 
-            insert_reply_to_query = text(f"""
+            insert_reply_to_query = text("""
                 INSERT INTO reply_to (reply_id, answer_id, replied_to, replier) 
-                VALUES ('{new_reply_id}', '{answer_id}', '{user_id_answerer}', '{user_id_replier}');
+                VALUES (:new_reply_id, :answer_id, :user_id_answerer, :user_id_replier);
             """)
-            connection.execute(insert_reply_to_query)
+            connection.execute(insert_reply_to_query, {'new_reply_id': new_reply_id, 'answer_id': answer_id, 'user_id_answerer': user_id_answerer, 'user_id_replier': user_id_replier})
     
     except Exception as e:
         print("Error:", e)
         return "Error: An unexpected error occurred", 500
 
     return redirect(request.referrer)
+
 
 if __name__ == "__main__":
 	import click
