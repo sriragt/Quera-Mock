@@ -410,6 +410,114 @@ def add_reply():
 
     return redirect(request.referrer)
 
+@app.route('/upvote', methods=['POST'])
+def add_upvote():
+    email = request.form['email']
+    answer_id = request.form['answer_id']
+    if email is None or email == '':
+         flash('You did not input your email', 'error')
+         return redirect(request.referrer)
+    
+    try:
+        with engine.begin() as connection:
+            user_id_voter_query = text("""
+                SELECT user_id 
+                FROM users 
+                WHERE email_address = :email
+            """)
+            user_id_voter = connection.execute(user_id_voter_query, {'email': email}).scalar()
+            
+            if user_id_voter is None:
+                flash('Email does not exist in the database', 'error')
+                return redirect(request.referrer)
+            
+            existing_vote_query = text("""
+                SELECT vote 
+                FROM votes 
+                WHERE user_id = :user_id_voter AND answer_id = :answer_id
+            """)
+            existing_vote = connection.execute(existing_vote_query, {'user_id_voter': user_id_voter, 'answer_id': answer_id}).scalar()
+            
+            if existing_vote == -1:
+                flash('You have already downvoted this answer', 'error')
+                return redirect(request.referrer)
+            elif existing_vote == 1:
+                flash('You have already upvoted this answer', 'error')
+                return redirect(request.referrer)
+            
+            user_id_answerer_query = text("""
+                SELECT answered_by 
+                FROM answers 
+                WHERE answer_id = :answer_id
+            """)
+            user_id_answerer = connection.execute(user_id_answerer_query, {'answer_id': answer_id}).scalar()
+            
+            insert_vote_query = text("""
+                INSERT INTO votes (user_id, answer_id, creator_id, vote) 
+                VALUES (:user_id_voter, :answer_id, :user_id_answerer, 1);
+            """)
+            connection.execute(insert_vote_query, {'user_id_voter': user_id_voter, 'answer_id': answer_id, 'user_id_answerer': user_id_answerer})
+    
+    except Exception as e:
+        print("Error:", e)
+        return "Error: An unexpected error occurred", 500
+
+    return redirect(request.referrer)
+
+@app.route('/downvote', methods=['POST'])
+def add_downvote():
+    email = request.form['email']
+    answer_id = request.form['answer_id']
+    if email is None or email == '':
+         flash('You did not input your email', 'error')
+         return redirect(request.referrer)
+    
+    try:
+        with engine.begin() as connection:
+            user_id_voter_query = text("""
+                SELECT user_id 
+                FROM users 
+                WHERE email_address = :email
+            """)
+            user_id_voter = connection.execute(user_id_voter_query, {'email': email}).scalar()
+            
+            if user_id_voter is None:
+                flash('Email does not exist in the database', 'error')
+                return redirect(request.referrer)
+            
+            existing_vote_query = text("""
+                SELECT vote 
+                FROM votes 
+                WHERE user_id = :user_id_voter AND answer_id = :answer_id
+            """)
+            existing_vote = connection.execute(existing_vote_query, {'user_id_voter': user_id_voter, 'answer_id': answer_id}).scalar()
+            
+            if existing_vote == -1:
+                flash('You have already downvoted this answer', 'error')
+                return redirect(request.referrer)
+            elif existing_vote == 1:
+                flash('You have already upvoted this answer', 'error')
+                return redirect(request.referrer)
+            
+            user_id_answerer_query = text("""
+                SELECT answered_by 
+                FROM answers 
+                WHERE answer_id = :answer_id
+            """)
+            user_id_answerer = connection.execute(user_id_answerer_query, {'answer_id': answer_id}).scalar()
+            
+            insert_vote_query = text("""
+                INSERT INTO votes (user_id, answer_id, creator_id, vote) 
+                VALUES (:user_id_voter, :answer_id, :user_id_answerer, -1);
+            """)
+            connection.execute(insert_vote_query, {'user_id_voter': user_id_voter, 'answer_id': answer_id, 'user_id_answerer': user_id_answerer})
+    
+    except Exception as e:
+        print("Error:", e)
+        return "Error: An unexpected error occurred", 500
+
+    return redirect(request.referrer)
+
 
 if __name__ == "__main__":
 	import click

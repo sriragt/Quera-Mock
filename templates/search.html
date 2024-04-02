@@ -71,7 +71,7 @@
                         <label for="media">Media: </label>
                         <input type="text" id="media" name="media"><br><br>
                         <button type="submit">Submit</button>
-                        <button type="button" onclick="hideAnswerForm()">Exit</button>
+                        <button type="button" onclick="hideAnswerForm('{{ question_id }}')">Exit</button>
                     </form>
                 </div>
 
@@ -83,6 +83,29 @@
                             <ul>
                                 <li><i>User: {{ answer.answer_first_name }} {{ answer.answer_last_name }}</i></li>
                                 <li><i>Date Posted: {{ answer.answer_date_posted }}</i></li><br>
+
+                                <button onclick="showUpvoteForm('{{ answer_id }}')">Upvote</button>
+                                <div id="upvoteForm{{ answer_id }}" class="popup-form">
+                                    <form action="/upvote" method="POST">
+                                        <input type="hidden" name="answer_id" value="{{ answer_id }}">
+                                        <label for="upvoteEmail">Email <i>(required)</i>: </label>
+                                        <input type="email" id="upvoteEmail" name="email"><br><br>
+                                        <button type="submit">Upvote</button>
+                                        <button type="button" onclick="hideUpvoteForm('{{ answer_id }}')">Exit</button>
+                                    </form>
+                                </div>
+
+                                <button onclick="showDownvoteForm('{{ answer_id }}')">Downvote</button>
+                                <div id="downvoteForm{{ answer_id }}" class="popup-form">
+                                    <form action="/downvote" method="POST">
+                                        <input type="hidden" name="answer_id" value="{{ answer_id }}">
+                                        <label for="downvoteEmail">Email <i>(required)</i>: </label>
+                                        <input type="email" id="downvoteEmail" name="email"><br><br>
+                                        <button type="submit">Downvote</button>
+                                        <button type="button" onclick="hideDownvoteForm('{{ answer_id }}')">Exit</button>
+                                    </form>
+                                </div>
+
                                 <button onclick="showReplyForm('{{ answer_id }}')">Reply</button>
                                 <div id="replyForm{{ answer_id }}" class="popup-form">
                                     <form action="/reply" method="POST">
@@ -92,7 +115,7 @@
                                         <label for="replyDescription">Description <i>(required)</i>:</label><br>
                                         <textarea id="replyDescription" name="description" rows="4" cols="50"></textarea><br><br>
                                         <button type="submit">Submit</button>
-                                        <button type="button" onclick="hideReplyForm()">Exit</button>
+                                        <button type="button" onclick="hideReplyForm('{{ answer_id }}')">Exit</button>
                                     </form>
                                 </div>
                                 
@@ -117,6 +140,18 @@
     </div>
 
     <script>
+        function showUpvoteForm(answerId) {
+            document.getElementById("upvoteForm" + answerId).style.display = "block";
+        }
+        function hideUpvoteForm(answerId) {
+            document.getElementById("upvoteForm" + answerId).style.display = "none";
+        }
+        function showDownvoteForm(answerId) {
+            document.getElementById("downvoteForm" + answerId).style.display = "block";
+        }
+        function hideDownvoteForm(answerId) {
+            document.getElementById("downvoteForm" + answerId).style.display = "none";
+        }
         function showAnswerForm(questionId) {
             document.getElementById("answerForm" + questionId).style.display = "block";
         }
