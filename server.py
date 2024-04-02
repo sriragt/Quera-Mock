@@ -1,4 +1,3 @@
-
 """
 Columbia's COMS W4111.001 Introduction to Databases
 Example Webserver
@@ -344,6 +343,73 @@ def search():
                     })
     
     return render_template("search.html", search_results=results, search_words=search_words)
+
+@app.route('/topics', methods=['GET', 'POST'])
+def topics():
+    if request.method == 'POST':
+        return search_by_topic()
+    else:
+        return render_template("topics.html", search_results={}, search_words=[])
+    
+def search_by_topic():
+    topic = request.form.get('topic', '')
+    search_results = {}
+    if topic == "":
+        return render_template("topics.html", search_results={}, search_words=[])
+
+    with engine.connect() as conn:
+        query = text(f"""
+            SELECT DISTINCT q.question_id, q.question_title, q.description AS question_description, u1.first_name AS question_first_name, u1.last_name AS question_last_name, q.date_posted AS question_date_posted, 
+                   a.answer_id, a.description AS answer_description, u2.first_name AS answer_first_name, u2.last_name AS answer_last_name, a.date_posted AS answer_date_posted, 
+                   r.description AS reply_description, u3.first_name AS reply_first_name, u3.last_name AS reply_last_name, r.date_posted AS reply_date_posted
+            FROM questions q 
+            LEFT JOIN answer_to at ON q.question_id = at.question_id
+            LEFT JOIN answers a ON at.answer_id = a.answer_id
+            LEFT JOIN users u1 ON q.user_id = u1.user_id
+            LEFT JOIN users u2 ON a.answered_by = u2.user_id
+            LEFT JOIN reply_to rt ON a.answer_id = rt.answer_id
+            LEFT JOIN replies r ON rt.reply_id = r.reply_id
+            LEFT JOIN users u3 ON r.replied_by = u3.user_id
+            WHERE :topic = ANY(array(SELECT t.topic FROM topics t WHERE t.question_id = q.question_id))
+            ORDER BY q.date_posted DESC, a.date_posted DESC, r.date_posted DESC;
+        """)
+
+        result = conn.execute(query, {'topic': topic})
+        for row in result.fetchall():
+            question_id = row[0]
+            answer_id = row[6]
+            if question_id not in search_results:
+                qlast = row[4] if row[4] else ''
+                search_results[question_id] = {
+                    'question_title': row[1],
+                    'question_description': row[2],
+                    'question_first_name': row[3],
+                    'question_last_name': qlast,
+                    'question_date_posted': row[5],
+                    'answers': {}
+                }
+            if row[7]:
+                if answer_id not in search_results[question_id]['answers']:
+                    alast = row[9] if row[9] else ''
+                    search_results[question_id]['answers'][answer_id] = {
+                        'answer_description': row[7],
+                        'answer_first_name': row[8],
+                        'answer_last_name': alast,
+                        'answer_date_posted': row[10],
+                        'replies': []
+                    }
+                if row[11]:
+                    rlast = row[13] if row[13] else ''
+                    search_results[question_id]['answers'][answer_id]['replies'].append({
+                        'reply_description': row[11],
+                        'reply_first_name': row[12],
+                        'reply_last_name': rlast,
+                        'reply_date_posted': row[14]
+                    })
+    
+    topic += " Questions"
+    return render_template("topics.html", search_results=search_results, search_words=[topic])
+
 
 @app.route('/answer', methods=['POST'])
 def add_answer():
@@ -785,8 +851,10 @@ def friends():
             WHERE f.follower_id = :user_id
         """)
         following = conn.execute(following_query, {'user_id': user_id}).fetchall()
-
-    return render_template("friends.html", followers=followers, following=following, user_email=email)
+    
+    followers_text = "Followers:" if followers else ""
+    following_text = "Following:" if following else ""
+    return render_template("friends.html", followers=followers, following=following, user_email=email, followers_text=followers_text, following_text=following_text)
 
 @app.route('/find_friends', methods=['GET'])
 def find_friends():

@@ -35,17 +35,18 @@
     <br><button onclick="window.location.href = './'">Return Home</button>
     <div id="results">
         {% if friends %}
-            <h3>Friends Found: {{ friends[0].first_name }} {{ friends[0].last_name }}</h3>
-            <button onclick="showFollowForm('{{ friends[0].user_id }}')">Follow {{ friends[0].first_name }}</button>
-            <div id="followForm{{ friends[0].user_id }}" class="popup-form">
-                <form action="/follow" method="POST">
-                    <input type="hidden" name="friend_id" value="{{ friends[0].user_id }}">
-                    <label for="followEmail">Your Email <i>(required)</i>: </label>
-                    <input type="email" id="email" name="email"><br><br>
-                    <button type="submit">Follow</button>
-                    <button type="button" onclick="hideFollowForm('{{ friends[0].user_id }}')">Exit</button>
-                </form>
-            </div>
+            <h3>Friends Found: {{ friends[0].first_name }} {{ friends[0].last_name }}
+                <button onclick="showFollowForm('{{ friends[0].user_id }}')">Follow {{ friends[0].first_name }}</button>
+                <div id="followForm{{ friends[0].user_id }}" class="popup-form">
+                    <form action="/follow" method="POST">
+                        <input type="hidden" name="friend_id" value="{{ friends[0].user_id }}">
+                        <label for="followEmail">Your Email <i>(required)</i>: </label>
+                        <input type="email" id="email" name="email"><br><br>
+                        <button type="submit">Follow</button>
+                        <button type="button" onclick="hideFollowForm('{{ friends[0].user_id }}')">Exit</button>
+                    </form>
+                </div>
+            </h3>
         {% endif %}
     </div>
 

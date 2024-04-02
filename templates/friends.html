@@ -17,7 +17,7 @@
         <button type="submit">Find Connections</button>
     </form>
 
-    <h2>Followers:</h2>
+    <h2>{{ followers_text }}</h2>
     <ul>
         {% for follower in followers %}
             <li>{{ follower.first_name }} {{ follower.last_name }}
@@ -30,7 +30,7 @@
         {% endfor %}
     </ul>
 
-    <h2>Following:</h2>
+    <h2>{{ following_text }}</h2>
     <ul>
         {% for person in following %}
             <li>{{ person.first_name }} {{ person.last_name }} 
