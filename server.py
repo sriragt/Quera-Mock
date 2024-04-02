@@ -337,31 +337,48 @@ def add_answer():
 
     return redirect('/')
 
-if __name__ == '__main__':
-    app.run(debug=True)
-
 @app.route('/reply', methods=['GET', 'POST'])
 def add_reply():
-    if request.method == 'POST':
-        return insert_reply()
-    else:
-        pass
-
-def insert_reply():
-    replied_by = request.form['replied_by']
+    email = request.form['email']
     description = request.form['description']
-    date_posted = 'current_date_here'
-    
     question_id = request.form['question_id']
     answer_id = request.form['answer_id']
     
-    insert_query = """
-        INSERT INTO replies (question_id, answer_id, replied_by, description, date_posted)
-        VALUES (%s, %s, %s, %s, %s)
-    """
-    with engine.connect() as conn:
-        conn.execute(insert_query, (question_id, answer_id, replied_by, description, date_posted))
-        conn.commit()
+    try:
+        with engine.begin() as connection:
+            user_id_answerer_query = text(f"""
+                SELECT answered_by 
+                FROM answers 
+                WHERE answer_id = '{answer_id}';
+            """)
+            user_id_answerer = connection.execute(user_id_answerer_query).scalar()
+
+            user_id_replier_query = text(f"""
+                SELECT user_id 
+                FROM users 
+                WHERE email_address = '{email}';
+            """)
+            user_id_replier = connection.execute(user_id_replier_query).scalar()
+
+            max_reply_id_query = text("""SELECT MAX(reply_id) FROM replies;""")
+            max_reply_id = connection.execute(max_reply_id_query).scalar() or 0
+            new_reply_id = str(int(max_reply_id) + 1).zfill(4)
+
+            insert_reply_query = text(f"""
+                INSERT INTO replies (reply_id, replied_by, description, date_posted) 
+                VALUES ('{new_reply_id}', '{user_id_replier}', '{description}', CURRENT_DATE);
+            """)
+            connection.execute(insert_reply_query)
+
+            insert_reply_to_query = text(f"""
+                INSERT INTO reply_to (reply_id, answer_id, replied_to, replier) 
+                VALUES ('{new_reply_id}', '{answer_id}', '{user_id_answerer}', '{user_id_replier}');
+            """)
+            connection.execute(insert_reply_to_query)
+    
+    except Exception as e:
+        print("Error:", e)
+        return "Error: An unexpected error occurred", 500
 
     return redirect('/')
 
