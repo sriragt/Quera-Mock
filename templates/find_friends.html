@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Friends</title>
+    <style>
+        .popup-form {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 40px;
+            border: 1px solid #ccc;
+            width: 40%;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <h3 style="color: red; font-style: italic;">{{ messages[0][1] }}</h3>
+        {% endif %}
+    {% endwith %}
+
+    <h1>Find New Friends</h1>
+    <form action="/find_friends" method="GET">
+        <label for="email">Enter Email:</label>
+        <input type="text" id="email" name="email">
+        <button type="submit">Find Friends</button>
+    </form>
+    <div id="results">
+        {% if friends %}
+            <h3>Friends Found: {{ friends[0].first_name }} {{ friends[0].last_name }}</h3>
+            <button onclick="showFollowForm('{{ friends[0].user_id }}')">Follow {{ friends[0].first_name }}</button>
+            <div id="followForm{{ friends[0].user_id }}" class="popup-form">
+                <form action="/follow" method="POST">
+                    <input type="hidden" name="friend_id" value="{{ friends[0].user_id }}">
+                    <label for="followEmail">Your Email <i>(required)</i>: </label>
+                    <input type="email" id="email" name="email"><br><br>
+                    <button type="submit">Follow</button>
+                    <button type="button" onclick="hideFollowForm('{{ friends[0].user_id }}')">Exit</button>
+                </form>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function showFollowForm(id) {
+            document.getElementById("followForm" + id).style.display = "block";
+        }
+        function hideFollowForm(id) {
+            document.getElementById("followForm" + id).style.display = "none";
+        }
+    </script>
+</body>
+</html>

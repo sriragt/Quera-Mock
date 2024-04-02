@@ -62,8 +62,8 @@
                     <div id="followForm{{ question_id }}" class="popup-form">
                         <form action="/follow" method="POST">
                             <input type="hidden" name="question_id" value="{{ question_id }}">
-                            <label for="followEmail">Email <i>(required)</i>: </label>
-                            <input type="email" id="followEmail" name="email"><br><br>
+                            <label for="followEmail">Your Email <i>(required)</i>: </label>
+                            <input type="email" id="followEmail" name="email" required><br><br>
                             <button type="submit">Follow</button>
                             <button type="button" onclick="hideFollowForm('{{ question_id }}')">Exit</button>
                         </form>
@@ -75,10 +75,10 @@
                 <div id="answerForm{{ question_id }}" class="popup-form">
                     <form action="/answer" method="POST">
                         <input type="hidden" name="question_id" value="{{ question_id }}">
-                        <label for="answerEmail">Email <i>(required)</i>: </label>
-                        <input type="email" id="answerEmail" name="email"><br><br>
+                        <label for="answerEmail">Your Email <i>(required)</i>: </label>
+                        <input type="email" id="answerEmail" name="email" required><br><br>
                         <label for="answerDescription">Description <i>(required)</i>:</label><br>
-                        <textarea id="answerDescription" name="description" rows="4" cols="50"></textarea><br><br>
+                        <textarea id="answerDescription" name="description" rows="4" cols="50" required></textarea><br><br>
                         <label for="media">Media: </label>
                         <input type="text" id="media" name="media"><br><br>
                         <button type="submit">Submit</button>
@@ -97,7 +97,7 @@
                                     <div id="followForm{{ answer_id }}" class="popup-form">
                                         <form action="/follow" method="POST">
                                             <input type="hidden" name="answer_id" value="{{ answer_id }}">
-                                            <label for="followEmail">Email <i>(required)</i>: </label>
+                                            <label for="followEmail">Your Email <i>(required)</i>: </label>
                                             <input type="email" id="followEmail" name="email"><br><br>
                                             <button type="submit">Follow</button>
                                             <button type="button" onclick="hideFollowForm('{{ answer_id }}')">Exit</button>
@@ -110,7 +110,7 @@
                                 <div id="upvoteForm{{ answer_id }}" class="popup-form">
                                     <form action="/upvote" method="POST">
                                         <input type="hidden" name="answer_id" value="{{ answer_id }}">
-                                        <label for="upvoteEmail">Email <i>(required)</i>: </label>
+                                        <label for="upvoteEmail">Your Email <i>(required)</i>: </label>
                                         <input type="email" id="upvoteEmail" name="email"><br><br>
                                         <button type="submit">Upvote</button>
                                         <button type="button" onclick="hideUpvoteForm('{{ answer_id }}')">Exit</button>
@@ -121,8 +121,8 @@
                                 <div id="downvoteForm{{ answer_id }}" class="popup-form">
                                     <form action="/downvote" method="POST">
                                         <input type="hidden" name="answer_id" value="{{ answer_id }}">
-                                        <label for="downvoteEmail">Email <i>(required)</i>: </label>
-                                        <input type="email" id="downvoteEmail" name="email"><br><br>
+                                        <label for="downvoteEmail">Your Email <i>(required)</i>: </label>
+                                        <input type="email" id="downvoteEmail" name="email" required><br><br>
                                         <button type="submit">Downvote</button>
                                         <button type="button" onclick="hideDownvoteForm('{{ answer_id }}')">Exit</button>
                                     </form>
@@ -132,10 +132,10 @@
                                 <div id="replyForm{{ answer_id }}" class="popup-form">
                                     <form action="/reply" method="POST">
                                         <input type="hidden" name="answer_id" value="{{ answer_id }}">
-                                        <label for="replyEmail">Email <i>(required)</i>: </label>
-                                        <input type="email" id="replyEmail" name="email"><br><br>
+                                        <label for="replyEmail">Your Email <i>(required)</i>: </label>
+                                        <input type="email" id="replyEmail" name="email" required><br><br>
                                         <label for="replyDescription">Description <i>(required)</i>:</label><br>
-                                        <textarea id="replyDescription" name="description" rows="4" cols="50"></textarea><br><br>
+                                        <textarea id="replyDescription" name="description" rows="4" cols="50" required></textarea><br><br>
                                         <button type="submit">Submit</button>
                                         <button type="button" onclick="hideReplyForm('{{ answer_id }}')">Exit</button>
                                     </form>
@@ -152,8 +152,8 @@
                                                     <div id="followForm{{ reply.reply_id }}" class="popup-form">
                                                         <form action="/follow" method="POST">
                                                             <input type="hidden" name="reply_id" value="{{ reply.reply_id }}">
-                                                            <label for="followEmail">Email <i>(required)</i>: </label>
-                                                            <input type="email" id="followEmail" name="email"><br><br>
+                                                            <label for="followEmail">Your Email <i>(required)</i>: </label>
+                                                            <input type="email" id="followEmail" name="email" required><br><br>
                                                             <button type="submit">Follow</button>
                                                             <button type="button" onclick="hideFollowForm('{{ reply.reply_id }}')">Exit</button>
                                                         </form>

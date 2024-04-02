@@ -525,15 +525,16 @@ def add_downvote():
 
 @app.route('/follow', methods=['POST'])
 def follow():
+    print(1)
     email = request.form['email']
     question_id = request.form.get('question_id')
     answer_id = request.form.get('answer_id')
     reply_id = request.form.get('reply_id')
+    followee_id = request.form.get('friend_id')
 
     if email is None or email == '':
         flash('You did not input your email', 'error')
         return redirect(request.referrer)
-
     try:
         with engine.begin() as connection:
             follower_id_query = text("""
@@ -546,31 +547,36 @@ def follow():
             if follower_id is None:
                 flash('Email does not exist in the database', 'error')
                 return redirect(request.referrer)
-            
-            if question_id:
-                followee_id_query = text("""
-                    SELECT user_id 
-                    FROM questions 
-                    WHERE question_id = :question_id
-                """)
-                followee_id = connection.execute(followee_id_query, {'question_id': question_id}).scalar()
-            elif answer_id:
-                followee_id_query = text("""
-                    SELECT user_id 
-                    FROM answers 
-                    WHERE answer_id = :answer_id
-                """)
-                followee_id = connection.execute(followee_id_query, {'answer_id': answer_id}).scalar()
-            else:
-                followee_id_query = text("""
-                    SELECT user_id 
-                    FROM replies 
-                    WHERE reply_id = :reply_id
-                """)
-                followee_id = connection.execute(followee_id_query, {'reply_id': reply_id}).scalar()
 
-            if followee_id is None:
-                flash('Post does not exist in the database', 'error')
+            if not followee_id:
+                if question_id:
+                    followee_id_query = text("""
+						SELECT user_id 
+						FROM questions 
+						WHERE question_id = :question_id
+					""")
+                    followee_id = connection.execute(followee_id_query, {'question_id': question_id}).scalar()
+                elif answer_id:
+                    followee_id_query = text("""
+						SELECT user_id 
+						FROM answers 
+						WHERE answer_id = :answer_id
+					""")
+                    followee_id = connection.execute(followee_id_query, {'answer_id': answer_id}).scalar()
+                else:
+                    followee_id_query = text("""
+						SELECT user_id 
+						FROM replies 
+						WHERE reply_id = :reply_id
+					""")
+                    followee_id = connection.execute(followee_id_query, {'reply_id': reply_id}).scalar()
+
+                if followee_id is None:
+                    flash('Post does not exist in the database', 'error')
+                    return redirect(request.referrer)
+                
+            if follower_id == followee_id:
+                flash('You can not follow yourself', 'error')
                 return redirect(request.referrer)
 
             check_follow_query = text("""
@@ -579,7 +585,6 @@ def follow():
                 WHERE follower_id = :follower_id AND followee_id = :followee_id
             """)
             follow_exists = connection.execute(check_follow_query, {'follower_id': follower_id, 'followee_id': followee_id}).scalar()
-            print(followee_id, follower_id, check_follow_query)
 
             if follow_exists:
                 flash('You are already following this user', 'error')
@@ -600,11 +605,8 @@ def follow():
 
 @app.route('/followfollower', methods=['POST'])
 def followfollower():
-    print("Hello0")
     follower_email = request.form['follower_email']
     user_email = request.form['user_email']
-    print("Hello1")
-
     try:
         with engine.begin() as connection:
             person_to_follow_query = text("""
@@ -620,9 +622,13 @@ def followfollower():
                 WHERE email_address = :user_email
             """)
             user_id = connection.execute(user_id_query, {'user_email': user_email}).scalar()
-            print("Hello2")
+            
             if person_to_follow_id is None or user_id is None:
                 flash('User to follow does not exist', 'error')
+                return redirect(request.referrer)
+            
+            if person_to_follow_id == user_id_query:
+                flash('You can not follow yourself', 'error')
                 return redirect(request.referrer)
             
             follow_check_query = text("""
@@ -675,7 +681,6 @@ def unfollow():
                 flash('User to unfollow does not exist', 'error')
                 return redirect(request.referrer)
             
-            # Check if the user is following the followee
             follow_check_query = text("""
                 SELECT 1
                 FROM follows
@@ -739,6 +744,25 @@ def friends():
         following = connection.execute(following_query, {'user_id': user_id}).fetchall()
 
     return render_template("friends.html", followers=followers, following=following, user_email=email)
+
+@app.route('/find_friends', methods=['GET'])
+def find_friends():
+    email = request.args.get('email', '')
+    
+    if email == "None":
+         return render_template("find_friends.html")
+    elif email == '':
+        flash('You did not input your email', 'error')
+        return redirect(request.referrer)
+
+    with engine.begin() as connection:
+        friends_query = text("""
+            SELECT user_id, first_name, COALESCE(last_name, '') AS last_name
+            FROM users
+            WHERE email_address = :email
+        """)
+        friends = connection.execute(friends_query, {'email': email}).fetchall()
+    return render_template("find_friends.html", friends=friends, user_email=email)
 
 if __name__ == "__main__":
 	import click
