@@ -54,8 +54,8 @@
                 <p><i>User: {{ question_data.question_first_name }} {{ question_data.question_last_name }}</i></p>
                 <p><i>Date Posted: {{ question_data.question_date_posted }}</i></p>
                 
-                <button onclick="showAnswerForm()">Answer</button>
-                <div id="answerForm" class="popup-form">
+                <button onclick="showAnswerForm('{{ question_id }}')">Answer</button>
+                <div id="answerForm{{ question_id }}" class="popup-form">
                     <form action="/answer" method="POST">
                         <input type="hidden" name="question_id" value="{{ question_id }}">
                         <label for="answerEmail">Email: </label>
@@ -77,8 +77,8 @@
                             <ul>
                                 <li><i>User: {{ answer.answer_first_name }} {{ answer.answer_last_name }}</i></li>
                                 <li><i>Date Posted: {{ answer.answer_date_posted }}</i></li><br>
-                                <button onclick="showReplyForm()">Reply</button>
-                                <div id="replyForm" class="popup-form">
+                                <button onclick="showReplyForm('{{ answer_id }}')">Reply</button>
+                                <div id="replyForm{{ answer_id }}" class="popup-form">
                                     <form action="/reply" method="POST">
                                         <input type="hidden" name="answer_id" value="{{ answer_id }}">
                                         <label for="replyEmail">Email: </label>
@@ -111,18 +111,19 @@
     </div>
 
     <script>
-        function showAnswerForm() {
-            document.getElementById("answerForm").style.display = "block";
+        function showAnswerForm(questionId) {
+            document.getElementById("answerForm" + questionId).style.display = "block";
         }
-        function hideAnswerForm() {
-            document.getElementById("answerForm").style.display = "none";
+        function hideAnswerForm(questionId) {
+            document.getElementById("answerForm" + questionId).style.display = "none";
         }
-        function showReplyForm() {
-            document.getElementById("replyForm").style.display = "block";
+        function showReplyForm(answerId) {
+            document.getElementById("replyForm" + answerId).style.display = "block";
         }
-        function hideReplyForm() {
-            document.getElementById("replyForm").style.display = "none";
+        function hideReplyForm(answerId) {
+            document.getElementById("replyForm" + answerId).style.display = "none";
         }
+
     </script>
 </body>
 </html>

@@ -267,26 +267,29 @@ def search():
             question_id = row[0]
             answer_id = row[6]
             if question_id not in results:
+                qlast = row[4] if row[4] else ''
                 results[question_id] = {
                     'question_title': row[1],
                     'question_description': row[2],
                     'question_first_name': row[3],
-                    'question_last_name': row[4],
+                    'question_last_name': qlast,
                     'question_date_posted': row[5],
                     'answers': {}
                 }
             if answer_id not in results[question_id]['answers']:
+                alast = row[9] if row[9] else ''
                 results[question_id]['answers'][answer_id] = {
                     'answer_description': row[7],
                     'answer_first_name': row[8],
-                    'answer_last_name': row[9],
+                    'answer_last_name': alast,
                     'answer_date_posted': row[10],
                     'replies': []
                 }
+            rlast = row[13] if row[13] else ''
             results[question_id]['answers'][answer_id]['replies'].append({
                 'reply_description': row[11],
                 'reply_first_name': row[12],
-                'reply_last_name': row[13],
+                'reply_last_name': rlast,
                 'reply_date_posted': row[14]
             })
     
@@ -301,35 +304,37 @@ def add_answer():
     
     try:
         with engine.begin() as connection:
-            user_id_questioner_query = text(f"""
+            user_id_questioner_query = text("""
                 SELECT user_id 
                 FROM questions 
-                WHERE question_id = '{question_id}';
+                WHERE question_id = :question_id
             """)
-            user_id_questioner = connection.execute(user_id_questioner_query).scalar()
+            user_id_questioner = connection.execute(user_id_questioner_query, {'question_id': question_id}).scalar()
 
-            user_id_answerer_query = text(f"""
+            user_id_answerer_query = text("""
                 SELECT user_id 
                 FROM users 
-                WHERE email_address = '{email}';
+                WHERE email_address = :email
             """)
-            user_id_answerer = connection.execute(user_id_answerer_query).scalar()
+            user_id_answerer = connection.execute(user_id_answerer_query, {'email': email}).scalar()
 
-            max_answer_id_query = text("""SELECT MAX(answer_id) FROM answers;""")
+            max_answer_id_query = text("""
+                SELECT MAX(answer_id) FROM answers
+            """)
             max_answer_id = connection.execute(max_answer_id_query).scalar() or 0
             new_answer_id = str(int(max_answer_id) + 1).zfill(4)
 
-            insert_answer_query = text(f"""
+            insert_answer_query = text("""
                 INSERT INTO answers (answer_id, answered_by, description, media, date_posted) 
-                VALUES ('{new_answer_id}', '{user_id_answerer}', '{description}', '{media}', CURRENT_DATE);
+                VALUES (:new_answer_id, :user_id_answerer, :description, :media, CURRENT_DATE)
             """)
-            connection.execute(insert_answer_query)
+            connection.execute(insert_answer_query, {'new_answer_id': new_answer_id, 'user_id_answerer': user_id_answerer, 'description': description, 'media': media})
 
-            insert_answer_to_query = text(f"""
+            insert_answer_to_query = text("""
                 INSERT INTO answer_to (answer_id, question_id, answered_to, answerer) 
-                VALUES ('{new_answer_id}', '{question_id}', '{user_id_questioner}', '{user_id_answerer}');
+                VALUES (:new_answer_id, :question_id, :user_id_questioner, :user_id_answerer)
             """)
-            connection.execute(insert_answer_to_query)
+            connection.execute(insert_answer_to_query, {'new_answer_id': new_answer_id, 'question_id': question_id, 'user_id_questioner': user_id_questioner, 'user_id_answerer': user_id_answerer})
     
     except Exception as e:
         print("Error:", e)
