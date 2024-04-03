@@ -17,8 +17,6 @@ tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 
-
-
 #
 # The following is a dummy URI that does not connect to a valid database. You will need to modify it to connect to your Part 2 database in order to use the data.
 #
@@ -188,8 +186,15 @@ def add_user():
     ZIP = request.form.get('ZIP', None)
     country = request.form.get('country', None)
     
-    max_id_query = text("""SELECT MAX(CAST(user_id AS INT)) FROM users;""")
     with engine.connect() as conn:
+        email_check_query = text("""SELECT COUNT(*) FROM users WHERE email_address = :email;""")
+        result = conn.execute(email_check_query, {'email': email})
+        email_count = result.fetchone()[0]
+        if email_count > 0:
+            flash('An account with this email already exists', 'error')
+            return redirect('/user')
+        
+        max_id_query = text("""SELECT MAX(CAST(user_id AS INT)) FROM users;""")
         result = conn.execute(max_id_query)
         max_id = result.fetchone()[0]
         if max_id is None:
@@ -240,6 +245,10 @@ def add_post():
     media = request.form.get('media', None)
     privacy = request.form['privacy']
     topics = request.form.getlist('topics')
+
+    if media.count(" ") > 0 or media.count(".") != 1 or not media.split(".")[1].isalpha():
+        flash('Please enter a valid media file name', 'error')
+        return redirect(request.referrer)
     
     max_id_query = text("""SELECT MAX(CAST(SUBSTRING(question_id, 2) AS INT)) FROM questions;""")
     with engine.connect() as conn:
@@ -296,7 +305,8 @@ def search():
         query = text(f"""
             SELECT DISTINCT q.question_id, q.question_title, q.description AS question_description, u1.first_name AS question_first_name, u1.last_name AS question_last_name, q.date_posted AS question_date_posted, 
                    a.answer_id, a.description AS answer_description, u2.first_name AS answer_first_name, u2.last_name AS answer_last_name, a.date_posted AS answer_date_posted, 
-                   r.description AS reply_description, u3.first_name AS reply_first_name, u3.last_name AS reply_last_name, r.date_posted AS reply_date_posted
+                   r.description AS reply_description, u3.first_name AS reply_first_name, u3.last_name AS reply_last_name, r.date_posted AS reply_date_posted,
+                   COALESCE((SELECT SUM(vote) FROM votes WHERE answer_id = a.answer_id), 0) AS total_votes
             FROM questions q 
             LEFT JOIN answer_to at ON q.question_id = at.question_id
             LEFT JOIN answers a ON at.answer_id = a.answer_id
@@ -306,7 +316,7 @@ def search():
             LEFT JOIN replies r ON rt.reply_id = r.reply_id
             LEFT JOIN users u3 ON r.replied_by = u3.user_id
             {where_clause}
-            ORDER BY q.date_posted DESC, a.date_posted DESC, r.date_posted DESC;
+            ORDER BY q.date_posted DESC, total_votes DESC, a.date_posted DESC, r.date_posted DESC;
         """)
         
         result = conn.execute(query, {"word": word for word in search_words})
@@ -331,6 +341,7 @@ def search():
                         'answer_first_name': row[8],
                         'answer_last_name': alast,
                         'answer_date_posted': row[10],
+                        'votes': row[15],
                         'replies': []
                     }
                 if row[11]:
@@ -361,7 +372,8 @@ def search_by_topic():
         query = text(f"""
             SELECT DISTINCT q.question_id, q.question_title, q.description AS question_description, u1.first_name AS question_first_name, u1.last_name AS question_last_name, q.date_posted AS question_date_posted, 
                    a.answer_id, a.description AS answer_description, u2.first_name AS answer_first_name, u2.last_name AS answer_last_name, a.date_posted AS answer_date_posted, 
-                   r.description AS reply_description, u3.first_name AS reply_first_name, u3.last_name AS reply_last_name, r.date_posted AS reply_date_posted
+                   r.description AS reply_description, u3.first_name AS reply_first_name, u3.last_name AS reply_last_name, r.date_posted AS reply_date_posted,
+                   COALESCE((SELECT SUM(vote) FROM votes WHERE answer_id = a.answer_id), 0) AS total_votes
             FROM questions q 
             LEFT JOIN answer_to at ON q.question_id = at.question_id
             LEFT JOIN answers a ON at.answer_id = a.answer_id
@@ -371,7 +383,7 @@ def search_by_topic():
             LEFT JOIN replies r ON rt.reply_id = r.reply_id
             LEFT JOIN users u3 ON r.replied_by = u3.user_id
             WHERE :topic = ANY(array(SELECT t.topic FROM topics t WHERE t.question_id = q.question_id))
-            ORDER BY q.date_posted DESC, a.date_posted DESC, r.date_posted DESC;
+            ORDER BY q.date_posted DESC, total_votes DESC, a.date_posted DESC, r.date_posted DESC;
         """)
 
         result = conn.execute(query, {'topic': topic})
@@ -396,6 +408,7 @@ def search_by_topic():
                         'answer_first_name': row[8],
                         'answer_last_name': alast,
                         'answer_date_posted': row[10],
+                        'votes': row[15],
                         'replies': []
                     }
                 if row[11]:
@@ -417,6 +430,10 @@ def add_answer():
     description = request.form['description']
     media = request.form.get('media', None)
     question_id = request.form['question_id']
+
+    if media.count(" ") > 0 or media.count(".") != 1 or not media.split(".")[1].isalpha():
+        flash('Please enter a valid media file name', 'error')
+        return redirect(request.referrer)
     if email is None or email == '':
          flash('You did not input your email', 'error')
          return redirect(request.referrer)

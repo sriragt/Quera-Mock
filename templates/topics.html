@@ -31,7 +31,7 @@
     <form action="/topics" method="POST">
         <label for="topicSelect">Select a Topic:</label>
         <select id="topicSelect" name="topic">
-            <option value="" selected></option>
+            <option value=""></option>
             <option value="Science & Technology">Science & Technology</option>
             <option value="Health & Wellness">Health & Wellness</option>
             <option value="History">History</option>
@@ -98,6 +98,8 @@
                                 </div>
                             </li>
                             <li><i>Date Posted: {{ answer.answer_date_posted }}</i></li>
+                            <li><i>Votes: {{ answer.votes }}</i></li><br>
+
                             <button onclick="showUpvoteForm('{{ answer_id }}')">Upvote</button>
                             <div id="upvoteForm{{ answer_id }}" class="popup-form">
                                 <form action="/upvote" method="POST">

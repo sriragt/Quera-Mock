@@ -105,7 +105,8 @@
                                         </form>
                                     </div>
                                 </li>
-                                <li><i>Date Posted: {{ answer.answer_date_posted }}</i></li><br>
+                                <li><i>Date Posted: {{ answer.answer_date_posted }}</i></li>
+                                <li><i>Votes: {{ answer.votes }}</i></li><br>
 
                                 <button onclick="showUpvoteForm('{{ answer_id }}')">Upvote</button>
                                 <div id="upvoteForm{{ answer_id }}" class="popup-form">
