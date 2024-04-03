@@ -4,6 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Profile</title>
+    <style>
+        .popup-form {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 40px;
+            border: 1px solid #ccc;
+            width: 40%;
+            z-index: 1000;
+        }
+    </style>
+    <script>
+        function showInfoForm(user_id) {
+            var form = document.getElementById('infoForm' + user_id);
+            form.style.display = 'block';
+        }
+    
+        function hideInfoForm(user_id) {
+            var form = document.getElementById('infoForm' + user_id);
+            form.style.display = 'none';
+        }
+    </script>
 </head>
 <body>
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -19,6 +44,43 @@
         <button type="submit">Find Account</button>
     </form>
     <br><button onclick="window.location.href = './'">Return Home</button>
+
+    <h2>User Information</h2>
+    {% for info in user_info %}
+    <ul>
+        <li>First Name: {{ info.first_name }}</li>
+        <li>Last Name: {{ info.last_name }}</li>
+        <li>Email: {{ info.email_address }}</li>
+        <li>Current Employment: {{ info.curr_employment }}</li>
+        <li>Description: {{ info.description }}</li>
+        <li>Date Joined: {{ info.date_joined }}</li>
+        <li>City: {{ info.city }}</li>
+        <li>ZIP Code: {{ info.zip }}</li>
+        <li>Country: {{ info.country }}</li>
+    </ul>
+    <button onclick="showInfoForm('{{ info.user_id }}')">Change Profile Information</button>
+    <div id="infoForm{{ info.user_id }}" class="popup-form">
+        <div class="popup-content">
+            <span onclick="hideInfoForm('{{ info.user_id }}')" style="float: right; cursor: pointer;">&times;</span>
+            <form action="/change_info" method="POST">
+                <input type="hidden" name="user_id" value="{{ info.user_id }}">
+                <label for="curr_employment">Current Employment:</label>
+                <input type="text" id="curr_employment" name="curr_employment"><br><br>
+                <label for="description">Description:</label><br>
+                <textarea id="description" name="description" rows="4" cols="50"></textarea><br><br>
+                <label for="city">City:</label>
+                <input type="text" id="city" name="city"><br><br>
+                <label for="ZIP">ZIP Code:</label>
+                <input type="text" id="ZIP" name="ZIP"><br><br>
+                <label for="country">Country:</label>
+                <input type="text" id="country" name="country"><br><br>
+                <label for="writenone"><i>enter "none" to remove specified information</i></label><br><br>
+                <button type="submit">Save Changes</button>
+                <button type="button" onclick="hideInfoForm('{{ info.user_id }}')">Cancel</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
 
     <h2>Questions</h2>
     <ul>

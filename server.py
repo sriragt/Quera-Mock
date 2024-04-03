@@ -917,26 +917,69 @@ def find_profile():
             flash('No user found with that email address', 'error')
             return redirect('/user')
         
+        user_query = text("""
+            SELECT * from users where user_id = :user_id;
+        """)
+        user_info = conn.execute(user_query, {'user_id': user_id}).fetchall()
+        
         questions_query = text("""
             SELECT * FROM questions WHERE user_id = :user_id ORDER BY date_posted DESC;
         """)
-        questions_result = conn.execute(questions_query, {'user_id': user_id})
-        questions = questions_result.fetchall()
+        questions = conn.execute(questions_query, {'user_id': user_id}).fetchall()
         
         answers_query = text("""
             SELECT a.*, COALESCE((SELECT SUM(vote) FROM votes WHERE answer_id = a.answer_id), 0) AS total_votes FROM answers a WHERE answered_by = :user_id ORDER BY date_posted DESC;
         """)
-        answers_result = conn.execute(answers_query, {'user_id': user_id})
-        answers = answers_result.fetchall()
+        answers = conn.execute(answers_query, {'user_id': user_id}).fetchall()
         
         replies_query = text("""
             SELECT * FROM replies WHERE replied_by = :user_id ORDER BY date_posted DESC;
         """)
-        replies_result = conn.execute(replies_query, {'user_id': user_id})
-        replies = replies_result.fetchall()
+        replies = conn.execute(replies_query, {'user_id': user_id}).fetchall()
     
-    return render_template('profile.html', questions=questions, answers=answers, replies=replies)
+    return render_template('profile.html', user_info=user_info, questions=questions, answers=answers, replies=replies)
 
+@app.route('/change_info', methods=['POST'])
+def change_info():
+    user_id = request.form.get('user_id')
+    curr_employment = request.form.get('curr_employment')
+    curr_employment = curr_employment if curr_employment else None
+    curr_employment = "" if curr_employment == "none" else curr_employment
+    description = request.form.get('description')
+    description = description if description else None
+    description = "" if description == "none" else description
+    city = request.form.get('city')
+    city = city if city else None
+    city = "" if city == "none" else city
+    zip = request.form.get('ZIP')
+    zip = zip if zip else None
+    zip = "" if zip == "none" else zip
+    country = request.form.get('country')
+    country = country if country else None
+    country = "" if country == "none" else country
+
+    with engine.connect() as conn:
+        update_query = text("""
+            UPDATE users SET
+            curr_employment = COALESCE(:curr_employment, curr_employment),
+            description = COALESCE(:description, description),
+            city = COALESCE(:city, city),
+            zip = COALESCE(:zip, zip),
+            country = COALESCE(:country, country)
+            WHERE user_id = :user_id;
+        """)
+        conn.execute(update_query, {
+            'user_id': user_id,
+            'curr_employment': curr_employment,
+            'description': description,
+            'city': city,
+            'zip': zip,
+            'country': country
+        })
+        conn.commit()
+
+    flash('You have changed your profile', 'success')
+    return redirect('/profile')
 
 if __name__ == "__main__":
 	import click
