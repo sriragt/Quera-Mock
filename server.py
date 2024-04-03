@@ -897,7 +897,7 @@ def profile():
     if request.method == 'POST':
         return find_profile()
     else:
-        return render_template("profile.html")
+        return render_template("profile.html", info_title="", question_title="", answer_title="", reply_title="")
     
 def find_profile():
     email = request.form.get('email')
@@ -937,7 +937,7 @@ def find_profile():
         """)
         replies = conn.execute(replies_query, {'user_id': user_id}).fetchall()
     
-    return render_template('profile.html', user_info=user_info, questions=questions, answers=answers, replies=replies)
+    return render_template('profile.html', user_info=user_info, questions=questions, answers=answers, replies=replies, info_title="User Information", question_title="Questions", answer_title="Answers", reply_title="Replies")
 
 @app.route('/change_info', methods=['POST'])
 def change_info():

@@ -45,7 +45,7 @@
     </form>
     <br><button onclick="window.location.href = './'">Return Home</button>
 
-    <h2>User Information</h2>
+    <h2>{{ info_title }}</h2>
     {% for info in user_info %}
     <ul>
         <li>First Name: {{ info.first_name }}</li>
@@ -82,7 +82,7 @@
     </div>
     {% endfor %}
 
-    <h2>Questions</h2>
+    <h2>{{ question_title }}</h2>
     <ul>
         {% for question in questions %}
             <li>
@@ -95,7 +95,7 @@
         {% endfor %}
     </ul>
 
-    <h2>Answers</h2>
+    <h2>{{ answer_title }}</h2>
     <ul>
         {% for answer in answers %}
             <li>
@@ -108,7 +108,7 @@
         {% endfor %}
     </ul>
 
-    <h2>Replies</h2>
+    <h2>{{ reply_title }}</h2>
     <ul>
         {% for reply in replies %}
             <li>
