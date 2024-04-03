@@ -892,6 +892,52 @@ def find_friends():
         friends = conn.execute(friends_query, {'email': email}).fetchall()
     return render_template("find_friends.html", friends=friends, user_email=email)
 
+@app.route('/profile', methods=['GET', 'POST'])
+def profile():
+    if request.method == 'POST':
+        return find_profile()
+    else:
+        return render_template("profile.html")
+    
+def find_profile():
+    email = request.form.get('email')
+    
+    if not email:
+        flash('Please enter an email address', 'error')
+        return redirect('/profile')
+    
+    with engine.connect() as conn:
+        user_query = text("""
+            SELECT user_id FROM users WHERE email_address = :email
+        """)
+        user_result = conn.execute(user_query, {'email': email})
+        user_id = user_result.scalar()
+        
+        if not user_id:
+            flash('No user found with that email address', 'error')
+            return redirect('/user')
+        
+        questions_query = text("""
+            SELECT * FROM questions WHERE user_id = :user_id ORDER BY date_posted DESC;
+        """)
+        questions_result = conn.execute(questions_query, {'user_id': user_id})
+        questions = questions_result.fetchall()
+        
+        answers_query = text("""
+            SELECT a.*, COALESCE((SELECT SUM(vote) FROM votes WHERE answer_id = a.answer_id), 0) AS total_votes FROM answers a WHERE answered_by = :user_id ORDER BY date_posted DESC;
+        """)
+        answers_result = conn.execute(answers_query, {'user_id': user_id})
+        answers = answers_result.fetchall()
+        
+        replies_query = text("""
+            SELECT * FROM replies WHERE replied_by = :user_id ORDER BY date_posted DESC;
+        """)
+        replies_result = conn.execute(replies_query, {'user_id': user_id})
+        replies = replies_result.fetchall()
+    
+    return render_template('profile.html', questions=questions, answers=answers, replies=replies)
+
+
 if __name__ == "__main__":
 	import click
 

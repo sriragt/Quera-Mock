@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Profile</title>
+</head>
+<body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <h3 style="color: red; font-style: italic;">{{ messages[0][1] }}</h3>
+        {% endif %}
+    {% endwith %}
+
+    <h1>Manage Your Profile</h1>
+    <form action="/profile" method="POST">
+        <label for="email">Enter Email:</label>
+        <input type="text" id="email" name="email" required>
+        <button type="submit">Find Account</button>
+    </form>
+    <br><button onclick="window.location.href = './'">Return Home</button>
+
+    <h2>Questions</h2>
+    <ul>
+        {% for question in questions %}
+            <li>
+                <h4>{{ question.question_title }}</h4>
+                <ul>
+                    <p><i>{{ question.description }}</i></p>
+                    <p><i>Posted on: {{ question.date_posted }}</i></p>
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <h2>Answers</h2>
+    <ul>
+        {% for answer in answers %}
+            <li>
+                <p>{{ answer.description }}</p>
+                <ul>
+                    <p><i>Posted on: {{ answer.date_posted }}</i></p>
+                    <p><i>Votes: {{ answer.total_votes }}</i></p>
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <h2>Replies</h2>
+    <ul>
+        {% for reply in replies %}
+            <li>
+                <p>{{ reply.description }}</p>
+                <ul>
+                    <p><i>Posted on: {{ reply.date_posted }}</i></p>
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
