@@ -200,7 +200,7 @@ def add_user():
         if max_id is None:
             max_id = 1
         new_id = str(int(max_id) + 1).zfill(4)
-        user_id = f'{new_id:04}'
+        user_id = '{' + str(new_id) + ':04}'
 
         insert_query = text("""
             INSERT INTO users (user_id, first_name, last_name, email_address, curr_employment, description, date_joined, date_of_birth, city, ZIP, country)
@@ -257,7 +257,7 @@ def add_post():
         if max_id is None:
             max_id = 1
         new_id = str(int(max_id) + 1).zfill(4)
-        question_id = f'q{new_id:04}'
+        question_id = 'q{' + str(new_id) + ':04}'
         
         user_id_query = text("""
 			SELECT user_id 
