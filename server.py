@@ -200,7 +200,7 @@ def add_user():
         if max_id is None:
             max_id = 1
         new_id = str(int(max_id) + 1).zfill(4)
-        user_id = '{' + str(new_id) + ':04}'
+        user_id = str(new_id)
 
         insert_query = text("""
             INSERT INTO users (user_id, first_name, last_name, email_address, curr_employment, description, date_joined, date_of_birth, city, ZIP, country)
@@ -246,9 +246,10 @@ def add_post():
     privacy = request.form['privacy']
     topics = request.form.getlist('topics')
 
-    if media.count(" ") > 0 or media.count(".") != 1 or not media.split(".")[1].isalpha():
-        flash('Please enter a valid media file name', 'error')
-        return redirect(request.referrer)
+    if media != "":
+        if media.count(" ") > 0 or media.count(".") != 1 or not media.split(".")[1].isalpha():
+            flash('Please enter a valid media file name', 'error')
+            return redirect(request.referrer)
     
     max_id_query = text("""SELECT MAX(CAST(SUBSTRING(question_id, 2) AS INT)) FROM questions;""")
     with engine.connect() as conn:
@@ -257,7 +258,7 @@ def add_post():
         if max_id is None:
             max_id = 1
         new_id = str(int(max_id) + 1).zfill(4)
-        question_id = 'q{' + str(new_id) + ':04}'
+        question_id = 'q' + str(new_id)
         
         user_id_query = text("""
 			SELECT user_id 
@@ -431,9 +432,10 @@ def add_answer():
     media = request.form.get('media', None)
     question_id = request.form['question_id']
 
-    if media.count(" ") > 0 or media.count(".") != 1 or not media.split(".")[1].isalpha():
-        flash('Please enter a valid media file name', 'error')
-        return redirect(request.referrer)
+    if media != "":
+        if media.count(" ") > 0 or media.count(".") != 1 or not media.split(".")[1].isalpha():
+            flash('Please enter a valid media file name', 'error')
+            return redirect(request.referrer)
     if email is None or email == '':
          flash('You did not input your email', 'error')
          return redirect(request.referrer)
